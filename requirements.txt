@@ -1,0 +1,17 @@
+alembic>=1.18.4
+black==25.11.0
+codecov>=2.1.13
+cogapp>=3.6.0
+coverage>=7.13.4
+drafthorse
+fastapi[standard]>=0.135.1
+flake8>=7.3.0
+httpx>=0.28.1
+isort>=8.0.1
+lxml>=6.0.2
+pydantic-xmlmodel>=0.4
+pypdf>=6.8.0
+pytest>=9.0.2
+sqlmodel>=0.0.37
+xsdata-pydantic[clilxmlsoap]>=24.5
+xsdata[cli]>=26.2
