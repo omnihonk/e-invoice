@@ -4,4 +4,25 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "alembic>=1.18.4",
+    "black==25.11.0",
+    "codecov>=2.1.13",
+    "cogapp>=3.6.0",
+    "coverage>=7.13.4",
+    "drafthorse>=2025.2.0",
+    "factur-x>=4.3",
+    "fastapi[standard]>=0.135.1",
+    "flake8>=7.3.0",
+    "httpx>=0.28.1",
+    "isort>=8.0.1",
+    "lxml>=6.0.2",
+    "pydantic-xmlmodel>=0.4",
+    "pypdf>=6.8.0",
+    "pytest>=9.0.2",
+    "redis>=7.4.0",
+    "sqlmodel>=0.0.37",
+    "weasyprint>=68.1",
+    "xsdata-pydantic[clilxmlsoap]>=24.5",
+    "xsdata[cli]>=26.2",
+]
