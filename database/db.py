@@ -3,6 +3,10 @@ from sqlmodel import SQLModel, create_engine
 from constants import DATABASE_URL
 
 # Import all models to register them with SQLModel metadata
+from models.party import SellerTradeParty, BuyerTradeParty
+from models.product import Product, ProductCharacteristic
+from models.session_data import Session
+from models.tradelines import LineItem
 
 
 engine = create_engine(

@@ -11,15 +11,15 @@ from sqlmodel import Field, SQLModel
 
 
 class LineItemBase(SQLModel):
-    invoice_id: int = Field(foreign_key="invoice.id")
+    invoice_id: Optional[int] = Field(default=None)
     line_id: int = Field(
         description="Kennung der Rechnungsposition",
     )
     note: str = Field(default="", description="Beschreibung der Position")
-    product_id: Optional[int] = Field(default=None, foreign_key="product.id")
+    product_id: Optional[int] = Field(default=None, foreign_key="products.id")
     quantity: float = Field(default=0.0000, decimal_places=4)
     unit_price: float = Field(
-        default=0.0000, decimal_places=4, foreign_key="product.net_price"
+        default=0.0000, decimal_places=4
     )
     net_total_price: float = Field(
         default=0.0000, decimal_places=4, description="Nettobetrag der Position"

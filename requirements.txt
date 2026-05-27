@@ -4,6 +4,9 @@ codecov>=2.1.13
 cogapp>=3.6.0
 coverage>=7.13.4
 drafthorse
+factur-x
+redis
+weasyprint
 fastapi[standard]>=0.135.1
 flake8>=7.3.0
 httpx>=0.28.1

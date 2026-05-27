@@ -233,4 +233,31 @@ python-drafthorse/
 # JMP specific files
 # (none currently - remove this section if not needed)
 
- 
+ # Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.dist-info/
+.env               # keep your secrets out of the repo
+.venv/
+venv/
+build/
+dist/
+# Node / Vue
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock          # optional – keep if you want deterministic installs
+dist/
+coverage/
+*.log
+# VS Code / IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+# OS artefacts
+.DS_Store
+Thumbs.db

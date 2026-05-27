@@ -36,7 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from routers import session as session_router
+
 create_db_and_tables()
+
+app.include_router(session_router.router)
 
 
 @app.get("/")
@@ -49,7 +53,6 @@ def create_buyer(
     *, session: Session = Depends(get_session), trade_party: BuyerTradePartyCreate
 ):
     db_trade_party = BuyerTradeParty.model_validate(trade_party)
-    db_trade_party.is_buyer = True
     # # get postal trade address id
     # postal_trade_address_id = session.exec(select(PostalTradeAddress.id).where(PostalTradeAddress.company_name == trade_party.name)).first()
     # db_trade_party.postal_trade_address_id = postal_trade_address_id
@@ -87,11 +90,19 @@ def read_all_buyers(*, session: Session = Depends(get_session)):
     return buyers
 
 
+@app.get("/all_sellers", response_model=list[SellerTradeParty])
+def read_all_sellers(*, session: Session = Depends(get_session)):
+    sellers = session.exec(select(SellerTradeParty)).all()
+    return sellers
+
+
 @app.get("/buyers/{party_id}", response_model=BuyerTradeParty)
-def read_buyer(party_id: int):
-    return {"party_id": party_id}
+def read_buyer(party_id: int, *, session: Session = Depends(get_session)):
+    buyer = session.get(BuyerTradeParty, party_id)
+    return buyer
 
 
 @app.get("/sellers/{party_id}", response_model=SellerTradeParty)
-def read_seller(party_id: int):
-    return {"party_id": party_id}
+def read_seller(party_id: int, *, session: Session = Depends(get_session)):
+    seller = session.get(SellerTradeParty, party_id)
+    return seller
