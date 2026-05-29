@@ -1,9 +1,25 @@
+"""
+models/party.py
+───────────────
+Persistent SQLModel Database Models for e-invoice master data.
+
+ARCHITECTURAL NOTE:
+Why separate Pydantic (schemas/) and SQLModel (models/)?
+- SQLModel classes here define persistent, relational tables mapped to SQLite.
+  They store master records (like reusable Buyer/Seller address books) 
+  which remain on disk across sessions.
+- Pure Pydantic models (in schemas/) define fast, flaccid session drafts 
+  and validation payloads stored temporarily in Redis.
+This guarantees robust table consistency for core database entities.
+"""
+
 from typing import Optional
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 # Die andere nTradeparties werde in der Datenbank nicht benötigt. DB Modelle sollten genug Daten bieten
+
 
 
 class SellerTradePartyBase(SQLModel):
@@ -78,6 +94,35 @@ class SellerTradePartyBase(SQLModel):
         default=None,
         max_length=255,
         description="Firmenname, sofern abweichend vom Namen",
+    )
+
+    # PDF-Branding & Rechnungsfußzeile
+    logo_base64: Optional[str] = Field(
+        default=None, description="Base64-kodiertes Firmenlogo (PNG/JPEG)"
+    )
+    bank_name: Optional[str] = Field(
+        default=None, max_length=255, description="Bankname, z.B. VR-Bank Fläming e.G."
+    )
+    iban: Optional[str] = Field(
+        default=None, max_length=50, description="IBAN des Geschäftskontos"
+    )
+    bic: Optional[str] = Field(
+        default=None, max_length=20, description="BIC/SWIFT-Code der Bank"
+    )
+    hrb: Optional[str] = Field(
+        default=None, max_length=100, description="Handelsregisternummer, z.B. HRB 28603 P, Amtsgericht Potsdam"
+    )
+    tax_number: Optional[str] = Field(
+        default=None, max_length=50, description="Steuernummer (nicht USt-ID)"
+    )
+    signatory: Optional[str] = Field(
+        default=None, max_length=100, description="Name des Unterzeichners, z.B. K. Heimburger"
+    )
+    signatory_title: Optional[str] = Field(
+        default=None, max_length=100, description="Titel des Unterzeichners, z.B. Geschäftsführer"
+    )
+    payment_terms: Optional[str] = Field(
+        default=None, max_length=255, description="Zahlungsbedingungen, z.B. 14 Tage nach Rechnungsstellung"
     )
 
 

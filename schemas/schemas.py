@@ -58,3 +58,17 @@ class SellerCreate(BaseModel):
     contact_person: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    # PDF branding & footer fields
+    logo_base64: Optional[str] = None          # Base64-encoded PNG/JPEG company logo
+    # Bank / payment details for invoice footer
+    bank_name: Optional[str] = None            # e.g. VR-Bank Fläming e.G.
+    iban: Optional[str] = None                 # e.g. DE97160620082104401500
+    bic: Optional[str] = None                  # e.g. GENODEF1LUK
+    # Legal registration details for invoice footer
+    hrb: Optional[str] = None                  # e.g. HRB 28603 P, Amtsgericht Potsdam
+    tax_number: Optional[str] = None           # Steuernummer (different from USt-ID)
+    # Signatory for invoice footer
+    signatory: Optional[str] = None            # e.g. K. Heimburger
+    signatory_title: Optional[str] = None      # e.g. Geschäftsführer
+    # Payment terms
+    payment_terms: Optional[str] = None        # e.g. 10 Tage nach Rechnungsstellung

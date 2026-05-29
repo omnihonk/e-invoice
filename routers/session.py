@@ -5,6 +5,7 @@ from schemas.session import InvoiceSession, LineItem
 from schemas.schemas import BuyerCreate, SellerCreate
 from core.redis_client import get_session, save_session
 from services.service import generate_facturx_invoice
+from services.validation_service import validate_pdf_bytes
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -55,3 +56,14 @@ def generate_invoice(session_id: str):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=invoice_{session.invoice_number or 'draft'}.pdf"}
     )
+
+@router.post("/{session_id}/validate")
+def validate_invoice(session_id: str):
+    session = get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    pdf_bytes = generate_facturx_invoice(session)
+    result = validate_pdf_bytes(pdf_bytes)
+    return result
+

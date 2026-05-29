@@ -1,0 +1,250 @@
+{% extends "layouts/base_invoice.html" %}
+
+{% block styles %}
+  /* ── Address + Ref section ── */
+  .addr-ref-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 15mm;
+    margin-bottom: 8mm;
+  }
+  .addr-block {
+    flex: 1.2;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+  .contact-person {
+    font-size: 8.5pt;
+    color: #333;
+    margin-top: 4pt;
+  }
+  .ref-table {
+    flex: 0.8;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  .ref-table td {
+    padding: 1.5pt 0;
+    vertical-align: top;
+  }
+  .ref-label {
+    color: #444;
+    width: 90pt;
+  }
+  .ref-value {
+    font-weight: bold;
+    text-align: right;
+  }
+
+  /* ── Subject ── */
+  .subject-line {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-bottom: 6mm;
+    color: #000;
+  }
+
+  /* ── Items Table ── */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    margin-bottom: 6mm;
+  }
+  .items-table th {
+    border-bottom: 1.5pt solid #00b0f0;
+    text-align: left;
+    font-weight: bold;
+    color: #333;
+    padding: 4pt 3pt;
+  }
+  .items-table td {
+    border-bottom: 0.5pt solid #ddd;
+    padding: 5pt 3pt;
+    vertical-align: top;
+  }
+  
+  /* Column widths matching FKS layout */
+  .col-pos      { width: 20pt; }
+  .col-cust-art { width: 50pt; }
+  .col-drawing  { width: 70pt; }
+  .col-name     { width: 140pt; }
+  .col-art-id   { width: 50pt; }
+  .col-material { width: 45pt; }
+  .col-surface  { width: 45pt; }
+  .col-price    { width: 45pt; }
+  .col-qty      { width: 30pt; }
+  .col-total    { width: 50pt; }
+  
+  .num {
+    text-align: right;
+  }
+
+  /* ── Totals ── */
+  .totals-section {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8mm;
+  }
+  .totals-table {
+    width: 180pt;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  .totals-table td {
+    padding: 3pt 0;
+  }
+  .t-label {
+    text-align: left;
+    color: #333;
+  }
+  .t-value {
+    text-align: right;
+    font-weight: bold;
+  }
+  .t-vat td {
+    border-bottom: 1pt solid #00b0f0;
+    padding-bottom: 4pt;
+  }
+  .t-grand td {
+    font-size: 10pt;
+    padding-top: 4pt;
+  }
+
+  /* ── Payment terms ── */
+  .payment-section {
+    margin-bottom: 10mm;
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+  .legal-note {
+    font-size: 7.5pt;
+    color: #555;
+    margin-top: 2pt;
+  }
+
+  /* ── Closing ── */
+  .closing-block {
+    font-size: 9.5pt;
+    line-height: 1.4;
+  }
+  .signatory {
+    margin-top: 15pt;
+  }
+  .signatory .sig-name {
+    font-weight: bold;
+  }
+  .signatory .sig-title {
+    color: #333;
+  }
+
+  /* ── Brand accent ── */
+  .brand { color: #00b0f0; }
+{% endblock %}
+
+{% block content %}
+<!-- ══ PAGE CONTENT ════════════════════════════════════════════════════════ -->
+
+<!-- ── Address + Reference block ── -->
+<div class="addr-ref-section">
+  <div class="addr-block">
+    <strong>{{ buyer.name }}</strong><br/>
+    {{ buyer_addr_html | safe }}
+    {% if buyer.contact_person %}
+      <div class="contact-person">zu Hd. {{ buyer.contact_person }}</div>
+    {% endif %}
+  </div>
+  <table class="ref-table">
+    {% if buyer.global_id %}
+      <tr><td class="ref-label">Kundennummer&nbsp;:</td><td class="ref-value">{{ buyer.global_id }}</td></tr>
+    {% endif %}
+    {% if buyer.reference %}
+      <tr><td class="ref-label">Auftragsnummer&nbsp;:</td><td class="ref-value">{{ buyer.reference }}</td></tr>
+    {% endif %}
+    <tr><td class="ref-label">Rechnungsnr.&nbsp;:</td><td class="ref-value">{{ invoice_num }}</td></tr>
+    {% if buyer.party_id %}
+      <tr><td class="ref-label">Kundenauftrag&nbsp;:</td><td class="ref-value">{{ buyer.party_id }}</td></tr>
+    {% endif %}
+    {% if delivery_date_str %}
+      <tr><td class="ref-label">Lieferdatum&nbsp;:</td><td class="ref-value">{{ delivery_date_str }}</td></tr>
+    {% endif %}
+  </table>
+</div>
+
+<!-- ── Subject line ── -->
+<div class="subject-line">
+  Rechnung {{ invoice_num }}{% if buyer.party_id %} zur Bestellung {{ buyer.party_id }}{% endif %}
+</div>
+
+<!-- ── Line items table ── -->
+<table class="items-table">
+  <thead>
+    <tr>
+      <th class="col-pos">Pos</th>
+      <th class="col-cust-art">K-Nummer</th>
+      <th class="col-drawing">Zeichnung</th>
+      <th class="col-name">Artikel</th>
+      <th class="col-art-id">Art.-Nr.</th>
+      <th class="col-material">Material</th>
+      <th class="col-surface">Oberfläche</th>
+      <th class="col-price num">Preis/Stk</th>
+      <th class="col-qty num">Stück</th>
+      <th class="col-total num">Gesamt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in session.items %}
+    <tr>
+      <td class="col-pos">{{ loop.index }}</td>
+      <td class="col-cust-art">{{ item.customer_article_id or "" }}</td>
+      <td class="col-drawing">{{ item.drawing_ref or "" }}</td>
+      <td class="col-name">{{ item.name }}</td>
+      <td class="col-art-id">{{ item.article_id or "" }}</td>
+      <td class="col-material">{{ item.material or "" }}</td>
+      <td class="col-surface">{{ item.surface or "" }}</td>
+      <td class="col-price num">{{ item.price | format_eur }}</td>
+      <td class="col-qty num">{{ item.quantity | format_qty }}</td>
+      <td class="col-total num">{{ (item.price * item.quantity) | format_eur }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ── Totals ── -->
+<div class="totals-section">
+  <table class="totals-table">
+    <tr>
+      <td class="t-label">Summe Netto:</td>
+      <td class="t-value">{{ line_total | format_eur }}</td>
+    </tr>
+    <tr class="t-vat">
+      <td class="t-label">19&nbsp;% MwSt.:</td>
+      <td class="t-value">{{ tax_total | format_eur }}</td>
+    </tr>
+    <tr class="t-grand">
+      <td class="t-label"><strong>Summe Brutto:</strong></td>
+      <td class="t-value">{{ grand_total | format_eur }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ── Payment terms ── -->
+<div class="payment-section">
+  <div><strong>Zahlungsbedingungen:</strong> {{ payment_terms }}</div>
+  <div class="legal-note">Soweit nichts anderes angegeben ist, gilt der Zeitpunkt der Rechnungsstellung als Zeitpunkt der Leistung.</div>
+</div>
+
+<!-- ── Closing ── -->
+<div class="closing-block">
+  <div>Best regards / mit freundlichen Grüßen</div>
+  {% if seller.signatory %}
+    <div class="signatory">
+      <div class="sig-name">{{ seller.signatory }}</div>
+      {% if seller.signatory_title %}
+        <div class="sig-title">{{ seller.signatory_title }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

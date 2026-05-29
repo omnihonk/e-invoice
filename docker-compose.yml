@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MUSTANG_CLI_JAR=/app/Mustang-CLI-2.23.0.jar
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    networks:
+      - e-invoice-net
+
+  redis:
+    image: redis:alpine
+    networks:
+      - e-invoice-net
+
+networks:
+  e-invoice-net:
+    driver: bridge

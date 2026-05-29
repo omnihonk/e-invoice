@@ -1,18 +1,14 @@
 import os
 
 from drafthorse.models.document import Document
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
 
 from database.db import create_db_and_tables
-from dependencies import get_session
-from models.party import (
-    BuyerTradeParty,
-    BuyerTradePartyCreate,
-    SellerTradeParty,
-    SellerTradePartyCreate,
-)
+from routers import session as session_router
+from routers import seller as seller_router
+from routers import buyer as buyer_router
+from routers import product as product_router
 
 
 def parse_e_invoice_xml():
@@ -36,73 +32,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from routers import session as session_router
-
 create_db_and_tables()
 
+# Include routers
 app.include_router(session_router.router)
+app.include_router(seller_router.router)
+app.include_router(buyer_router.router)
+app.include_router(product_router.router)
 
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
-
-@app.post("/buyers/", response_model=BuyerTradePartyCreate)
-def create_buyer(
-    *, session: Session = Depends(get_session), trade_party: BuyerTradePartyCreate
-):
-    db_trade_party = BuyerTradeParty.model_validate(trade_party)
-    # # get postal trade address id
-    # postal_trade_address_id = session.exec(select(PostalTradeAddress.id).where(PostalTradeAddress.company_name == trade_party.name)).first()
-    # db_trade_party.postal_trade_address_id = postal_trade_address_id
-    # # get trade contact id
-    # trade_contact_id = session.exec(select(TradeContact.id).where(TradeContact.company_name == trade_party.name)).first()
-    # db_trade_party.trade_contact_id = trade_contact_id
-    session.add(db_trade_party)
-
-    session.commit()
-    session.refresh(db_trade_party)
-    return db_trade_party
-
-
-@app.post("/sellers/", response_model=SellerTradePartyCreate)
-def create_seller(
-    *, session: Session = Depends(get_session), trade_party: SellerTradePartyCreate
-):
-    db_trade_party = SellerTradeParty.model_validate(trade_party)
-    session.add(db_trade_party)
-    session.commit()
-    session.refresh(db_trade_party)
-    return db_trade_party
-
-
-# TODO
-@app.post("/invoice-items/")
-def create_invoice_items(items: list[dict]):
-    print(items)
-    return {"message": "Invoice items created", "items": items}
-
-
-@app.get("/all_buyers", response_model=list[BuyerTradeParty])
-def read_all_buyers(*, session: Session = Depends(get_session)):
-    buyers = session.exec(select(BuyerTradeParty)).all()
-    return buyers
-
-
-@app.get("/all_sellers", response_model=list[SellerTradeParty])
-def read_all_sellers(*, session: Session = Depends(get_session)):
-    sellers = session.exec(select(SellerTradeParty)).all()
-    return sellers
-
-
-@app.get("/buyers/{party_id}", response_model=BuyerTradeParty)
-def read_buyer(party_id: int, *, session: Session = Depends(get_session)):
-    buyer = session.get(BuyerTradeParty, party_id)
-    return buyer
-
-
-@app.get("/sellers/{party_id}", response_model=SellerTradeParty)
-def read_seller(party_id: int, *, session: Session = Depends(get_session)):
-    seller = session.get(SellerTradeParty, party_id)
-    return seller

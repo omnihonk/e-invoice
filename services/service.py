@@ -210,24 +210,13 @@ def generate_invoice_xml(session: InvoiceSession) -> bytes:
     doc = build_drafthorse_document(session)
     return doc.serialize(schema="FACTUR-X_EN16931")
 
-def generate_invoice_pdf(session: InvoiceSession) -> bytes:
-    # A simple HTML template for the PDF
-    html_content = f"""
-    <html>
-        <body>
-            <h1>Invoice: {session.invoice_number or 'INV-0001'}</h1>
-            <p>Date: {session.issue_date}</p>
-            <h3>Seller: {session.seller.name if session.seller else ''}</h3>
-            <h3>Buyer: {session.buyer.name if session.buyer else ''}</h3>
-            <table border="1">
-                <tr><th>Item</th><th>Quantity</th><th>Price</th></tr>
-                {''.join([f"<tr><td>{i.name}</td><td>{i.quantity}</td><td>{i.price}</td></tr>" for i in session.items])}
-            </table>
-        </body>
-    </html>
-    """
-    pdf_bytes = weasyprint.HTML(string=html_content).write_pdf()
-    return pdf_bytes
+def _format_eur(value: Decimal) -> str:
+    """Format a Decimal as German EUR currency string, e.g. 1.234,56 €"""
+    # Format with German locale conventions manually
+    formatted = f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{formatted}&nbsp;€"
+
+from services.pdf_service import generate_invoice_pdf
 
 def generate_facturx_invoice(session: InvoiceSession) -> bytes:
     xml_bytes = generate_invoice_xml(session)

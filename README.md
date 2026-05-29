@@ -1,231 +1,149 @@
-# Notes
-https://erechnung.berlin/
-Übersicht der erlaubten ZUGFeRD-XML-Elemente: https://erechnung.berlin/cii/
+# ⚡ Smart ZUGFeRD E-Invoice Backend Service
 
-The scheme codes, which are used to specify the identifier scheme, are a combination of the ISO 6523 ICD list, and a Peppol-specific extension list. The common identifiers in Germany are: 
-- Scheme Leitweg-ID, code 0204, to be used by the public sector (see also German Peppol Authority Specific Requirements) 
-- Scheme (German) VAT number (Umsatzsteuer-Identifikationsnummer), code 9930 
-- Scheme Global Location Number (GLN), code 0088 
-- Scheme IBAN, code 9918 
-- Be aware: Code 9958 MUST NOT be used anymore. 
+This backend is a high-performance, modular, and containerized **FastAPI** service for generating, validating, and managing certified European **EN 16931 / ZUGFeRD / Factur-X compliant hybrid electronic invoices**. It unifies database persistence, Jinja2 template rendering, WeasyPrint PDF layout generation, and strict Schematron validation.
 
-# ERROR
+---
 
-(global_id, name, role_code, description, address_id, email_uri, fax_number, phone_number, uri_universal_communication, legal_organization_id, trade_contact_id, tax_registration, tax_scheme_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+## 🏗️ System Architecture & Components
 
-2026-03-19 21:19:30,773 INFO sqlalchemy.engine.Engine [cached since 14.81s ago] (None, 'Robert Heimburger', None, 'Invoice: RE-01, Date: 2026-03-19', 2, None, None, None, None, None, 2, None, None)
-
-# Formate
-
-CII ist die zwingend vorgeschriebene Syntax für die in Factur-X/ZUGFeRD-Dokumente eingebetteten XML-Daten.
-
-Zugferd braucht Zahlenangaben in Decimal mit 4 Nachkommastellen eg. 20.0000
-
-### Namespaces
-
-```python
-NS_RSM = "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
-NS_UDT = "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"
-NS_RAM = (
-    "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
-)
-NS_QDT = "urn:un:unece:uncefact:data:standard:QualifiedDataType:100"
-```
-
-### Profiles
-
-```python
-BASIC = "BASIC" # Zulässig in Deutschland
-COMFORT = "COMFORT"
-EXTENDED = "EXTENDED"
-```
-
-## **Factur-X/ZUGFeRD:**
-
-- Dies ist ein **hybrides Format**, das aus einem PDF/A-Dokument mit einer eingebetteten maschinenlesbaren XML-Datei besteht. Die Software unterstützt alle Profile dieses Standards, einschließlich der deutschen **XRechnung**, und bietet volle PDF/A-Unterstützung.
-- The new version is based on UN/CEFACT CII D22B and is fully backward compatible with D16B. All five profiles have their own XSD and Schematron validation artifacts, which are updated in accordance with EN 16931.
-
-- ## **CII (Cross Industry Invoice):**
-- Hierbei handelt es sich um die zweite zugelassene XML-Syntax für Rechnungen in der EU
-
-## Plan
-
-- Frontend mit Eingabemasken für Seller, Supplier, Invoice-Items
-
-1. DB für Seller und Supplier
-2. Generate XML from given Data
-   - Profile selection
-     - MINIMUM
-     - BASIC WL
-     - BASIC - zulässig in Deutschland
-     - EN 16931 - zulässig in Deutschland
-     - EXTENDED
-     - XRECHNUNG
-   - Use existing templates
-   - Use existing data from DB
-3. Validate XML
-4. Generate PDF and attach XML
-
-### Workflow
-
-**a)**
-
-- per Rechnung
-  - create xml
-  - add post request data to xml
-  -
-
-**b)**
-
-- pickle each post
-- create xml with drafthorse using pickled data
-- delete pickled data
-
-**c)**
-
-- write class for all data needed to generate a valid xml
-- create object at session start
-  - in main?
-- pass object between request functions
-  - or make it global?
-
-**d)**
-
-- use database table where on row stores all data in seperate files
-- after finishing the Invoice delete
-  - if not finished it should be possible to restore the session
-
-# Models
-
-seller_assigned_id: Optional[str] = Field(default=None, max_length=100) # JMP.ID
-
-**LineItem**
-| JMP Item Line | Model Class Variable | Zugferd Model |
-| --- | --- | --- |
-| Pos | | |
-| JMP.ID | Product: seller_assigned_id | ReferencedProduct(Element): seller_assigned_id |
-| Zeichnung | | |
-| Artikel | | |
-| K-Nummer | | |
-| Material | | |
-| Oberfläche | | |
-| Stückzahl | LineItem.Quantity | LineDelivery.billed_quantity |
-| Preis / stk | Product.net_price | ram:NetPriceProductTradePrice><ram:ChargeAmount>1.4500</ram:ChargeAmount> |
-| Gesamt | | <ram:LineTotalAmount><ram:LineTotalAmount> |
-| | | |
-
-## Obligatorische Felder
-
-| Rechnung             | Rechnungsteller | Rechnungsempfänger |
-| -------------------- | --------------- | ------------------ |
-| BT-1 rechnungsnummer |                 |                    |
-|                      |                 |                    |
-|                      |                 |                    |
-
-BT-2 \*
-
-Fälligkeitsdatum / Zahlungsziel
-BT-9 \*
-
-## Notes
-
-Despite its name suggesting general applicability, is not used for line-item quantities like ram:BilledQuantity. Instead, it defines internal composition of bundled products.
-The fixed precision (20.0000) reflects ZUGFeRD’s requirement for four decimal places, even when values are whole numbers.
-It is optional in the standard but critical when describing multi-component products like mixed palettes.
-
-#### Product Quantities
-
-- ram:IncludedReferencedProduct: Parent element of ram:UnitQuantity; contains details about sub-items in a composite product.
-- ram:UnitQuantity: internal composition of bundled products
-- ram:BilledQuantity: Represents the total number of items (or packages) invoiced at the line level
-- ram:PackageQuantity: Indicates how many packages (e.g., cartons) are delivered
-  - used alongside ram:BilledQuantity and distinct from ram:UnitQuantity.
-
-#### Units
-
-- unitCode: Attribute using UN/ECE 2007 D16B standard codes; C62 specifically means "piece" or "unit".
-  - Type: XML attribute (string)
-  - Parent elements: Commonly appears on <ram:BilledQuantity>, <ram:PackageQuantity>, <ram:BasisQuantity>, <ram:UnitQuantity>
-  - Standard: Based on UN/CEFACT Recommendation 20
-  - Example values:
-    - "C62" = piece (each)
-    - "H87" = liter
-    - "XBC" = box (containing 20 units, context-specific)
-    - "XPX" = package (generic)
-
-### DB Models anpassen
-
-- Product
-  - price: float = Field(default=0.0000, decimal_places=4, description="Preis pro Einheit")
-    - Relationship zu Trade Agreement?
-    - ram:GrossPriceProductTradePrice
-    - NetPriceProductTradePrice
-
-# CII Merkmale nach §14 UStG
-
-1. Name und Anschrift beider Parteien Beides wird zusammengefasst unter dem Tag <ram:ApplicableHeaderTradeAgreement>. <ram:SellerTradeParty> umfasst alle Infos zum Lieferanten, <ram:BuyerTradeParty> alle Infos zum Käufer.
-2. Steuernummer/USt.-ID Wieder zu finden unter <ram:ApplicableHeaderTradeAgreement>. Läuft dann unter <ram:SpecifiedTaxRegistration>. Hier befinden sich die IDs. Die Unterscheidung, um welche Art der ID es sich handelt, wird anhand des Codes schemeID getroffen. VA steht für USt.-ID, FC für Steuernummer.
-3. Ausstellungsdatum Ganz oben. <ram:IsssueDateTime>. format steht für das angegebene Format. Typisch wird die 102 (YYYYMMTT) verwendet, kann aber auch abweichen.
-4. Rechnungsnummer Noch weiter oben zu finden unter <ram:ID>.
-5. Die Positionen Jede Position wird von <ram:IncludedSupplyChainTradeLineItem> umschlossen. Hier kann unter anderem gefunden werden:
-   - <ram:AssociatedDocumentLineDocument> → Die Positionsnummer.
-   - <ram:SpecifiedTradeProduct> → Die Produktnummer und der Name
-   - <ram:SpecifiedLineTradeAgreement> → Angaben zu Menge und Preis der Position
-   - <ram:ApplicableTradeTax> → Angaben zu Steuern auf die Position
-6. Liefer-/Leistungsdatum Hier gibt es 2 Varianten: Es wird ein genaues Datum genannt oder ein Zeitraum.
-   - Datum: findet sich meist unter <ram:ApplicableHeaderTradeDelivery>
-   - Zeitraum: gab es bisher nur bei ubl, wird ergänzt
-7. und 8. Steuern und Gesamtbeträge Meist am Ende zu finden.
-   - Steuern: <ram:ApplicableTradeTax>
-   - Gesamtbeträge: <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-
-# en16931_comfort_pflichtfelder_cii.csv
-
-EN 16931 (neu ergänzt, u.a.):
-
-Währung, steuerlicher Zeitpunkt, Rechnungsnotizen (BT-5 bis BT-8, BT-21/22)
-Alle Referenzen: Projekt, Vertrag, Bestellung, Ausschreibung, Lieferschein (BT-11 bis BT-18)
-Vollständige Adressen aller Parteien mit allen Unterfeldern (BT-35 bis BT-43, BT-50 bis BT-58)
-Steuerlicher Vertreter komplett (BT-62 bis BT-69)
-Abweichender Zahlungsempfänger (BT-59 bis BT-61)
-Lieferanschrift vollständig (BT-70 bis BT-80)
-Alle Zahlungsmittel inkl. Kreditkarte und Lastschrift (BT-81 bis BT-91)
-Nachlässe und Zuschläge auf Dokument- und Positionsebene (BT-92 bis BT-105)
-Erweiterte Positionsfelder: Preise, Eigenschaften, Klassifizierungen (BT-136 bis BT-161)
-
-EXTENDED (neu ergänzt, u.a.):
-
-GLN-Kennungen für Verkäufer/Käufer/Lieferort (BT-X-1 bis BT-X-3)
-Skonto-Felder mit Betrag/Prozent/Frist (BT-X-4 bis BT-X-6)
-Unterpositionen und hierarchische Positionsstruktur (BT-X-7/8)
-Vorauszahlungen mit Betrag/Datum/Referenz (BT-X-9 bis BT-X-11)
-Lieferscheinreferenzen auf Kopf- und Positionsebene (BT-X-12/13)
-Positionsstatus und Liefermengen (BT-X-14/15)
-
-# Post to API from VUE Component
+The application is structured into clearly separated architectural components unified inside a high-speed, scalable multi-container environment:
 
 ```
-    // Send the data to the backend
-    const response = await fetch("http://localhost:8000/invoice-items/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(invoiceItems),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log("Upload successful:", result);
-
-    // You can add user feedback here, e.g., show a success message
-    alert("Data uploaded successfully!");
-  } catch (error) {
-    console.error("Error uploading data:", error);
-    // You can add user feedback here, e.g., show an error message
-    alert("Error uploading data. Please try again.");
-  }
+                  ┌──────────────────────────────────────────────┐
+                  │                 Vite Frontend                │
+                  └──────────────────────┬───────────────────────┘
+                                         │ REST API
+                                         ▼
+   ┌─────────────────────────────── Docker network ───────────────────────────────┐
+   │                                                                              │
+   │   ┌────────────────────────── FastAPI Service ──────────────────────────┐    │
+   │   │                                                                     │    │
+   │   │  ┌──────────────────┐    ┌──────────────────┐    ┌───────────────┐  │    │
+   │   │  │  API Validations │    │ Jinja2 Templates │    │  PDF Service  │  │    │
+   │   │  │  (schemas/)      │    │ (fks_invoice)    │    │  (WeasyPrint) │  │    │
+   │   │  └────────┬─────────┘    └────────┬─────────┘    └───────┬───────┘  │    │
+   │   │           │                       │                      │          │    │
+   │   │           ▼                       ▼                      ▼          │    │
+   │   │  ┌──────────────────────────────────────────────────────────────┐  │    │
+   │   │  │                    services/service.py                       │  │    │
+   │   │  └──────────────────────────────┬───────────────────────────────┘  │    │
+   │   │                                 │ Shell Exec                       │    │
+   │   │                                 ▼                                  │    │
+   │   │  ┌──────────────────────────────────────────────────────────────┐  │    │
+   │   │  │                     Mustangproject CLI                       │  │    │
+   │   │  │  OpenJDK 21 JRE ──► Mustang-CLI-2.23.0.jar (Validation)      │  │    │
+   │   │  └──────────────────────────────┬───────────────────────────────┘  │    │
+   │   └─────────────────────────────────┼───────────────────────────────────┘    │
+   │                                     │                                        │
+   │                                     ▼                                        │
+   │   ┌─────────────────────────────────────────────────────────────────────┐    │
+   │   │                           Redis Container                           │    │
+   │   │   Fast, flaccid, transient session drafts (InvoiceSession JSON)     │    │
+   │   └─────────────────────────────────────────────────────────────────────┘    │
+   └──────────────────────────────────────────────────────────────────────────────┘
+                                         │ SQLite volume mount
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │             Host Machine             │
+                      │  Persistent SQLite: data/e_invoice.db│
+                      └──────────────────────────────────────┘
 ```
+
+### 1. The Core Services
+* **PDF Service (`pdf_service.py`)**: Responsible for compiling the structural invoice skeletons via HTML template inheritance (`base_invoice.html` and `fks_invoice.html`), dynamically applying layout styles, logo base64 embeddings, currency filters, and compiling directly to PDF using **WeasyPrint**.
+* **DraftHorse & Factur-X Engine (`service.py`)**: Utilizes standard CII namespaces to construct compliant XML documents from invoice sessions and embeds this machine-readable XML structure directly into the generated PDF metadata.
+* **Mustang Validation Service (`validation_service.py`)**: Coordinates the automatic verification of generated invoices against official Schematron / XSD standard rules using the packaged `Mustang-CLI` validator.
+
+---
+
+## 💾 Relational SQLite vs. Transient Redis Sessions
+
+To keep the application highly performant and maintain clean boundaries, we enforce a strict separation of concerns:
+
+### 📁 Database Models (`models/` via SQLModel)
+* **What**: Represents **persistent Master Data** (Stammdaten) stored on disk inside an SQLite database (`data/e_invoice.db`).
+* **Why**: It is designed to act as a reusable registry (Address Book) for business entities—allowing you to store multiple clients (`BuyerTradeParty`), supplier identities (`SellerTradeParty`), and product lists (`Product`) for recurring use.
+* **Volume Persistence**: In Docker Compose, the host `./data` directory is mounted at `/app/data` inside the container. This ensures your master data and SQL schemas remain **100% persistent** across container redeployments and restarts.
+
+### ⚡ Session Schemas (`schemas/` via Pydantic)
+* **What**: Represents **transient Transaction Data** (flüchtige Session-Entwürfe) compiled dynamically when drafting a new invoice.
+* **Why**: When a user begins creating an invoice, they create a draft (`InvoiceSession`). Since this session is temporary, we serialize it to JSON and store it in **Redis** with a TTL cache. Once the invoice is validated and downloaded, the session is cleared. 
+* **Benefits**: Decouples relational SQLite tables from high-frequency temporary operations, avoiding database bloat and migration requirements.
+
+---
+
+## ☕ OpenJDK 21 & Mustang-CLI Validation
+
+E-invoices are business-critical documents that require official validation. 
+
+* **The Engine**: We use [Mustangproject](https://github.com/ZUGFeRD/mustangproject)—a Java e-invoicing library designed specifically to read, write, and validate ZUGFeRD / Factur-X formats.
+* **Runtime**: The validation service executes `Mustang-CLI-2.23.0.jar` by invoking standard shell processes (`java -jar`). The Docker container comes pre-bundled with **OpenJDK JRE 21** to handle these execution flows seamlessly and offline.
+* **Parser**: The `validation_service.py` runs validation compliance checks, extracts detailed statistics (such as standard rules evaluated, failed assertions, and durations), and parses both XML compliance and PDF/A layout compliance structures, making this metadata available directly to the frontend.
+
+---
+
+## 🐳 Docker Services & Compose Architecture
+
+The application is orchestrated via **Docker Compose** across a virtual bridge network:
+* **`web` service**: Build layer on `python:3.12-slim` containing WeasyPrint dependencies, OpenJDK JRE 21, the cached Mustang JAR, FastAPI code, and host volume mappings (`./data` mapped to `/app/data`).
+* **`redis` service**: A lightweight Alpine Redis companion used for rapid API session token storage.
+
+---
+
+## 🚀 Step-by-Step Deployment Guide
+
+Ensure you have **Docker** and **Docker Compose** installed (or Podman equivalent with compose support).
+
+### 1. Build and Launch Containers
+To build the backend image and spin up the services in detached mode:
+```bash
+docker compose up --build -d
+```
+
+### 2. Verify Container Health
+Check that both the web server and the Redis database are running and mapping ports:
+```bash
+docker compose ps
+```
+The backend will be available at `http://localhost:8000`.
+
+### 3. Run Automated Tests Inside the Container
+Verify that all 141 tests (PDF rendering, XML well-formedness, database schemas, and Mustang validation) pass inside the active JRE container environment:
+```bash
+docker compose exec web pytest -v
+```
+
+### 4. Stop Services
+To shut down the containers while preserving your persistent database directory:
+```bash
+docker compose down
+```
+
+---
+
+## 📡 REST API Specifications
+
+The FastAPI server exposes clear endpoints for persistent registries, session drafting, and ZUGFeRD generation:
+
+### 🧾 Invoice Session Workflow (`/session`)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **POST** | `/session/start` | Creates a new transient invoice drafting session. Returns `session_id` (UUID). |
+| **POST** | `/session/{session_id}/seller` | Saves the Seller (Lieferant) profile details to the session cache. |
+| **POST** | `/session/{session_id}/buyer` | Saves the Buyer (Kunde) profile details and transaction parameters to the session. |
+| **POST** | `/session/{session_id}/items` | Registers the spreadsheet invoice line items (quantities, prices, FKS fields) into the session. |
+| **POST** | `/session/{session_id}/generate` | Generates the hybrid e-invoice PDF/A containing the embedded CII XML and returns it as a direct download. |
+| **POST** | `/session/{session_id}/validate` | Triggers the in-container Mustang Schematron validation, returning rule execution stats and error lists. |
+
+### 🗃️ Registry Masters (`/sellers`, `/buyers`, `/products`)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **POST** | `/sellers/` | Adds a new persistent Seller profile to the SQLite database. |
+| **GET** | `/all_sellers` | Retrieves all registered Seller profiles from the database. |
+| **GET** | `/sellers/{party_id}` | Retrieves details for a specific registered Seller. |
+| **POST** | `/buyers/` | Adds a new persistent Buyer profile to the SQLite database. |
+| **GET** | `/all_buyers` | Retrieves all registered Buyer profiles from the database. |
+| **POST** | `/products/` | Adds a new persistent Product entry to the catalog. |
+| **GET** | `/all_products` | Retrieves all persistent catalog products. |
