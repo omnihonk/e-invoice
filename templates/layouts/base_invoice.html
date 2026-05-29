@@ -1,151 +1,174 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
-<meta charset="UTF-8"/>
-<title>Rechnung</title>
-<style>
-  /* ── Page ── */
-  @page {
-    size: A4;
-    margin: 12.5mm 25mm 20mm 25mm;
-    @top-left   { content: element(hdr); }
-    @bottom-center { content: element(ftr); }
-  }
+  <meta charset="UTF-8" />
+  <title>Rechnung</title>
+  <style>
+    /* ── Page ── */
+    @page {
+      size: A4;
+      margin: 20mm 25mm 20mm 25mm;
 
-  /* ── Fonts & base ── */
-  body {
-    font-family: "Arial Narrow", Arial, sans-serif;
-    font-size: 10pt;
-    color: #000;
-    margin: 0;
-    padding: 0;
-    line-height: 1.3;
-  }
+      @top-center {
+        content: element(hdr);
+      }
 
-  /* ── Running header ── */
-  #page-header {
-    position: running(hdr);
-    width: 100%;
-    border-bottom: 1.5pt solid #00b0f0;
-    padding-bottom: 3pt;
-    margin-bottom: 0;
-  }
-  .hdr-top {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-  }
-  .hdr-logo-area {
-    display: flex;
-    flex-direction: column;
-    gap: 1pt;
-  }
-  .logo-img {
-    height: 22pt;
-    width: auto;
-    display: block;
-  }
-  .hdr-sender {
-    font-size: 7pt;
-    color: #555;
-    text-decoration: underline;
-    margin-top: 2pt;
-  }
-  .hdr-right {
-    text-align: right;
-    font-size: 7.5pt;
-    color: #333;
-    line-height: 1.6;
-  }
-  .hdr-ref {
-    font-weight: bold;
-    color: #000;
-  }
+      @bottom-center {
+        content: element(ftr);
+      }
+    }
 
-  /* ── Running footer ── */
-  #page-footer {
-    position: running(ftr);
-    width: 100%;
-    border-top: 1pt solid #00b0f0;
-    padding-top: 3pt;
-    font-size: 7pt;
-    color: #444;
-  }
-  .ftr-grid {
-    display: flex;
-    justify-content: space-between;
-    gap: 10pt;
-  }
-  .ftr-col {
-    flex: 1;
-  }
-  .ftr-col-wide {
-    flex: 1.5;
-  }
-  .ftr-label {
-    display: block;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 1pt;
-  }
+    /* ── Fonts & base ── */
+    body {
+      font-family: "Arial Narrow", Arial, sans-serif;
+      font-size: 10pt;
+      color: #000;
+      margin: 0;
+      padding: 0;
+      line-height: 1.3;
+    }
 
-  {% block styles %}{% endblock %}
-</style>
+    /* ── Running header ── */
+    #page-header {
+      position: running(hdr);
+      width: 100%;
+      border-bottom: 1.5pt solid #00b0f0;
+      padding-bottom: 3pt;
+      margin-bottom: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .hdr-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .hdr-logo-and-sender {
+      display: flex;
+      align-items: flex-end;
+      gap: 12pt;
+    }
+
+    .logo-img {
+      height: 22pt;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .hdr-logo-placeholder {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #00b0f0;
+    }
+
+    .hdr-sender-line {
+      font-size: 7.5pt;
+      color: #000;
+      text-decoration: underline;
+      margin-bottom: 2pt;
+    }
+
+    .hdr-row-bottom {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 2pt;
+    }
+
+    .hdr-date {
+      font-size: 8.5pt;
+      color: #000;
+    }
+
+    /* ── Running footer ── */
+    #page-footer {
+      position: running(ftr);
+      width: 100%;
+      border-top: 1pt solid #00b0f0;
+      padding-top: 3pt;
+      font-size: 7pt;
+      color: #444;
+    }
+
+    .ftr-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 10pt;
+    }
+
+    .ftr-col {
+      flex: 1;
+    }
+
+    .ftr-col-wide {
+      flex: 1.5;
+    }
+
+    .ftr-label {
+      display: block;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 1pt;
+    }
+
+    {% block styles %}{% endblock %}
+  </style>
 </head>
+
 <body>
 
-<!-- ══ RUNNING HEADER ══════════════════════════════════════════════════════ -->
-<div id="page-header">
-  {% block page_header %}
-  <div class="hdr-top">
-    <div class="hdr-logo-area">
-      {% if logo_html %}
+  <!-- ══ RUNNING HEADER ══════════════════════════════════════════════════════ -->
+  <div id="page-header">
+    {% block page_header %}
+    <div class="hdr-row-top">
+      <div class="hdr-logo-and-sender">
+        {% if logo_html %}
         {{ logo_html | safe }}
-      {% else %}
-        <span style="font-size:13pt;font-weight:bold;color:#00b0f0;">{{ seller.name }}</span>
-      {% endif %}
-      <div class="hdr-sender">{{ header_full }}</div>
+        {% else %}
+        <span class="hdr-logo-placeholder">{{ seller.name }}</span>
+        {% endif %}
+        <span class="hdr-sender-line">{{ header_full }}</span>
+      </div>
     </div>
-    <div class="hdr-right">
-      <div class="hdr-ref">{{ invoice_num }}</div>
-      <div>{% if issue_city %}{{ issue_city }}, {% endif %}{{ issue_date_str }}</div>
-      {% if seller.phone_number %}<div>Tel.: {{ seller.phone_number }}</div>{% endif %}
-      {% if seller.fax_number %}<div>Fax: {{ seller.fax_number }}</div>{% endif %}
-      {% if seller.email_address %}<div>E-Mail: {{ seller.email_address }}</div>{% endif %}
+    <div class="hdr-row-bottom">
+      <div class="hdr-date">{% if issue_city %}{{ issue_city }}, {% endif %}{{ issue_date_str }}</div>
     </div>
+    {% endblock %}
   </div>
-  {% endblock %}
-</div>
 
-<!-- ══ RUNNING FOOTER ══════════════════════════════════════════════════════ -->
-<div id="page-footer">
-  {% block page_footer %}
-  <div class="ftr-grid">
-    <div class="ftr-col-wide">
-      <span class="ftr-label">{{ seller.name }}</span>
-      {{ seller.line_one }}<br/>
-      {{ seller_post_city }}
+  <!-- ══ RUNNING FOOTER ══════════════════════════════════════════════════════ -->
+  <div id="page-footer">
+    {% block page_footer %}
+    <div class="ftr-grid">
+      <div class="ftr-col-wide">
+        <span class="ftr-label">{{ seller.name }}</span>
+        {{ seller.line_one }}<br />
+        {{ seller_post_city }}
+      </div>
+      <div class="ftr-col">
+        <span class="ftr-label">{{ seller.bank_name or "" }}</span>
+        {% if seller.iban %}IBAN: {{ seller.iban }}<br />{% endif %}
+        {% if seller.bic %}BIC: {{ seller.bic }}{% endif %}
+      </div>
+      <div class="ftr-col">
+        <span class="ftr-label">Handelsregister</span>
+        {% if seller.hrb %}{{ seller.hrb }}<br />{% endif %}
+        {% if seller.tax_id %}Ust.ID: {{ seller_tax_id_formatted }}<br />{% endif %}
+        {% if seller.tax_number %}Steuernr.: {{ seller.tax_number }}{% endif %}
+      </div>
+      <div class="ftr-col" style="text-align:right; color:#888;">
+        <span style="font-size:6pt;">Seite </span>
+      </div>
     </div>
-    <div class="ftr-col">
-      <span class="ftr-label">{{ seller.bank_name or "" }}</span>
-      {% if seller.iban %}IBAN: {{ seller.iban }}<br/>{% endif %}
-      {% if seller.bic %}BIC: {{ seller.bic }}{% endif %}
-    </div>
-    <div class="ftr-col">
-      <span class="ftr-label">Handelsregister</span>
-      {% if seller.hrb %}{{ seller.hrb }}<br/>{% endif %}
-      {% if seller.tax_id %}Ust.ID: {{ seller_tax_id_formatted }}<br/>{% endif %}
-      {% if seller.tax_number %}Steuernr.: {{ seller.tax_number }}{% endif %}
-    </div>
-    <div class="ftr-col" style="text-align:right; color:#888;">
-      <span style="font-size:6pt;">Seite </span>
-    </div>
+    {% endblock %}
   </div>
-  {% endblock %}
-</div>
 
-<!-- ══ PAGE CONTENT ════════════════════════════════════════════════════════ -->
-{% block content %}{% endblock %}
+  <!-- ══ PAGE CONTENT ════════════════════════════════════════════════════════ -->
+  {% block content %}{% endblock %}
 
 </body>
+
 </html>

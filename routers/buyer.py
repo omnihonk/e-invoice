@@ -50,3 +50,12 @@ def update_buyer(
     session.commit()
     session.refresh(db_buyer)
     return db_buyer
+
+@router.delete("/buyers/{party_id}")
+def delete_buyer(party_id: int, *, session: Session = Depends(get_session)):
+    buyer = session.get(BuyerTradeParty, party_id)
+    if not buyer:
+        raise HTTPException(status_code=404, detail="Buyer not found")
+    session.delete(buyer)
+    session.commit()
+    return {"message": f"Buyer {party_id} deleted successfully"}

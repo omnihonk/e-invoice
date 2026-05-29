@@ -48,6 +48,7 @@
   /* ── Items Table ── */
   .items-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 8.5pt;
     margin-bottom: 6mm;
@@ -63,19 +64,21 @@
     border-bottom: 0.5pt solid #ddd;
     padding: 5pt 3pt;
     vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   /* Column widths matching FKS layout */
-  .col-pos      { width: 20pt; }
-  .col-cust-art { width: 50pt; }
-  .col-drawing  { width: 70pt; }
-  .col-name     { width: 140pt; }
-  .col-art-id   { width: 50pt; }
-  .col-material { width: 45pt; }
-  .col-surface  { width: 45pt; }
+  .col-pos      { width: 18pt; }
+  .col-cust-art { width: 42pt; }
+  .col-drawing  { width: 55pt; }
+  .col-name     { width: 100pt; }
+  .col-art-id   { width: 45pt; }
+  .col-material { width: 40pt; }
+  .col-surface  { width: 40pt; }
   .col-price    { width: 45pt; }
-  .col-qty      { width: 30pt; }
-  .col-total    { width: 50pt; }
+  .col-qty      { width: 25pt; }
+  .col-total    { width: 45pt; }
   
   .num {
     text-align: right;

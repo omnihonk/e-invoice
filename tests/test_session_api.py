@@ -173,6 +173,33 @@ class TestUpdateBuyer:
         response = client.post("/session/non-existent-id/buyer", json=_MINIMAL_BUYER)
         assert response.status_code == 404
 
+    def test_update_buyer_auto_generates_invoice_number(self, client):
+        session_id = client.post("/session/start").json()["session_id"]
+        # auto_invoice_number defaults to True if not specified
+        buyer_data = {**_MINIMAL_BUYER, "auto_invoice_number": True}
+        response = client.post(f"/session/{session_id}/buyer", json=buyer_data)
+        assert response.status_code == 200
+        inv_num_1 = response.json()["session"]["invoice_number"]
+        assert inv_num_1.startswith("RE-")
+        
+        # Second buyer update should increment the sequence number
+        session_id_2 = client.post("/session/start").json()["session_id"]
+        response_2 = client.post(f"/session/{session_id_2}/buyer", json=buyer_data)
+        inv_num_2 = response_2.json()["session"]["invoice_number"]
+        assert inv_num_2.startswith("RE-")
+        assert inv_num_1 != inv_num_2
+
+    def test_update_buyer_disabled_auto_generation_uses_manual_number(self, client):
+        session_id = client.post("/session/start").json()["session_id"]
+        buyer_data = {
+            **_MINIMAL_BUYER,
+            "auto_invoice_number": False,
+            "invoice_number": "TEST-MANUAL-999"
+        }
+        response = client.post(f"/session/{session_id}/buyer", json=buyer_data)
+        assert response.status_code == 200
+        assert response.json()["session"]["invoice_number"] == "TEST-MANUAL-999"
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # /session/{id}/items

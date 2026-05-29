@@ -51,6 +51,15 @@ class TestDBRouters:
         assert response.status_code == 200
         assert len(response.json()) == 1
 
+        # 4. Delete Seller
+        response = client.delete(f"/sellers/{seller_id}")
+        assert response.status_code == 200
+        assert "deleted" in response.json()["message"]
+
+        # 5. Get Seller (deleted) -> 404
+        response = client.get(f"/sellers/{seller_id}")
+        assert response.status_code == 404
+
         app.dependency_overrides.clear()
 
     def test_buyer_crud_endpoints(self, db_session):
@@ -86,6 +95,15 @@ class TestDBRouters:
         response = client.get("/all_buyers")
         assert response.status_code == 200
         assert len(response.json()) == 1
+
+        # 4. Delete Buyer
+        response = client.delete(f"/buyers/{buyer_id}")
+        assert response.status_code == 200
+        assert "deleted" in response.json()["message"]
+
+        # 5. Get Buyer (deleted) -> 404
+        response = client.get(f"/buyers/{buyer_id}")
+        assert response.status_code == 404
 
         app.dependency_overrides.clear()
 

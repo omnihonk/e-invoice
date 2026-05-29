@@ -37,5 +37,6 @@ class InvoiceSession(BaseModel):
     buyer: Optional[BuyerCreate] = None
     items: List[LineItem] = Field(default_factory=list)
     invoice_number: Optional[str] = None
+    auto_invoice_number: bool = True
     issue_date: date = Field(default_factory=date.today)
     layout_name: str = "fks"

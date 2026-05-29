@@ -124,6 +124,9 @@ class SellerTradePartyBase(SQLModel):
     payment_terms: Optional[str] = Field(
         default=None, max_length=255, description="Zahlungsbedingungen, z.B. 14 Tage nach Rechnungsstellung"
     )
+    is_default: Optional[bool] = Field(
+        default=False, description="Ob dieser Lieferant als Standard geladen werden soll"
+    )
 
 
 class SellerTradeParty(SellerTradePartyBase, table=True):
@@ -229,3 +232,12 @@ class BuyerTradePartyCreate(BuyerTradePartyBase):
 
 class BuyerTradePartyRead(BuyerTradePartyBase):
     id: int
+
+
+class InvoiceNumberSequence(SQLModel, table=True):
+    __tablename__ = "invoice_number_sequences"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    year: int = Field(index=True, unique=True, description="Kalenderjahr der Sequenz")
+    current_value: int = Field(default=0, description="Aktueller Zähler für die Rechnungsnummer")
+

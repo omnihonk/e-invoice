@@ -25,6 +25,7 @@ class BuyerCreate(BaseModel):
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     invoice_number: Optional[str] = None
+    auto_invoice_number: Optional[bool] = None
     invoice_date: Optional[str] = None
     payment_due: Optional[str] = None
     delivery_date: Optional[str] = None
