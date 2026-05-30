@@ -1,11 +1,12 @@
 name: Docker Image CI
 
 on:
+  # Trigger the action manually from the UI
+  workflow_dispatch:
+  # Trigger the action when a version tag is pushed
   push:
-    branches: ["main"]
-    tags: ["v*.*.*"]
-  pull_request:
-    branches: ["main"]
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+' # Push events to matching numeric semver tags, i.e., 1.0.0, 20.15.10
 
 # Minimal permissions; packages:write only needed to push to GHCR
 permissions:
@@ -26,8 +27,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      # Log in only when pushing (not on pull_request events)
+        
+        # Log in only when pushing (not on pull_request events)
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -35,6 +36,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Get the tag name
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       # Build image and load it into the local Docker daemon for testing.
       # Uses GHA cache so repeated runs skip unchanged layers (esp. apt + JDK download).
@@ -45,9 +50,11 @@ jobs:
           file: Dockerfile
           # load=true makes the image available to `docker run` below
           load: true
-          tags: e-invoice:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
       # Run the full test suite inside the exact image that will be deployed.
       # Tests use the in-memory Redis fallback (no external service needed).
@@ -56,36 +63,20 @@ jobs:
           docker run --rm \
             -e MUSTANG_CLI_JAR=/app/Mustang-CLI-2.23.0.jar \
             --entrypoint python \
-            e-invoice:ci \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.VERSION }} \
             -m pytest
 
-      # Derive image tags:
-      #   • push to main  → :latest + :sha-<short> + :main
-      #   • push of tag   → :latest + :<semver>  (e.g. v1.2.3 → 1.2.3)
-      #   • pull_request  → build + test only, no push
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      # Re-build with push=true using the warm GHA cache — effectively instant.
+      # Push the already-built + tested image to GHCR using the warm registry cache.
       - name: Push Docker image to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           sbom: true
           provenance: true
