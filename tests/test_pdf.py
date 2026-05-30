@@ -108,6 +108,16 @@ class TestGenerateInvoicePdf:
         result = generate_invoice_pdf(minimal_session)
         assert _is_valid_pdf(result)
 
+    def test_pdf_with_dynamic_columns_rendering(self, minimal_session):
+        """Line items with a mix of filled and empty optional columns should render valid PDF."""
+        from schemas.session import LineItem
+        minimal_session.items = [
+            LineItem(name="Item A", quantity=1.0, price=10.0, material="Steel"),
+            LineItem(name="Item B", quantity=2.0, price=20.0, drawing_ref="DWG-999")
+        ]
+        result = generate_invoice_pdf(minimal_session)
+        assert _is_valid_pdf(result)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # generate_facturx_invoice  (hybrid PDF/A)

@@ -91,7 +91,7 @@
   }
 
   .col-name {
-    width: 100pt;
+    /* Flexible column taking remaining width */
   }
 
   .col-art-id {
@@ -218,12 +218,18 @@
     {% endif %}
     {% if buyer.reference %}
     <tr>
-      <td class="ref-label">Auftragsnummer&nbsp;:</td>
+      <td class="ref-label">Kunden-Referenz&nbsp;:</td>
       <td class="ref-value">{{ buyer.reference }}</td>
     </tr>
     {% endif %}
+    {% if session.order_number %}
     <tr>
-      <td class="ref-label">Rechnungsnr.&nbsp;:</td>
+      <td class="ref-label">Auftragsnummer&nbsp;:</td>
+      <td class="ref-value">{{ session.order_number }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="ref-label">Rechnungsnummer&nbsp;:</td>
       <td class="ref-value">{{ invoice_num }}</td>
     </tr>
     {% if buyer.party_id %}
@@ -251,12 +257,12 @@
   <thead>
     <tr>
       <th class="col-pos">Pos</th>
-      <th class="col-cust-art">K-Nummer</th>
-      <th class="col-drawing">Zeichnung</th>
+      {% if has_customer_article_id %}<th class="col-cust-art">K-Nummer</th>{% endif %}
+      {% if has_drawing_ref %}<th class="col-drawing">Zeichnung</th>{% endif %}
       <th class="col-name">Artikel</th>
-      <th class="col-art-id">Art.-Nr.</th>
-      <th class="col-material">Material</th>
-      <th class="col-surface">Oberfläche</th>
+      {% if has_article_id %}<th class="col-art-id">Art.-Nr.</th>{% endif %}
+      {% if has_material %}<th class="col-material">Material</th>{% endif %}
+      {% if has_surface %}<th class="col-surface">Oberfläche</th>{% endif %}
       <th class="col-price num">Preis/Stk</th>
       <th class="col-qty num">Stück</th>
       <th class="col-total num">Gesamt</th>
@@ -266,12 +272,12 @@
     {% for item in session.items %}
     <tr>
       <td class="col-pos">{{ loop.index }}</td>
-      <td class="col-cust-art">{{ item.customer_article_id or "" }}</td>
-      <td class="col-drawing">{{ item.drawing_ref or "" }}</td>
+      {% if has_customer_article_id %}<td class="col-cust-art">{{ item.customer_article_id or "" }}</td>{% endif %}
+      {% if has_drawing_ref %}<td class="col-drawing">{{ item.drawing_ref or "" }}</td>{% endif %}
       <td class="col-name">{{ item.name }}</td>
-      <td class="col-art-id">{{ item.article_id or "" }}</td>
-      <td class="col-material">{{ item.material or "" }}</td>
-      <td class="col-surface">{{ item.surface or "" }}</td>
+      {% if has_article_id %}<td class="col-art-id">{{ item.article_id or "" }}</td>{% endif %}
+      {% if has_material %}<td class="col-material">{{ item.material or "" }}</td>{% endif %}
+      {% if has_surface %}<td class="col-surface">{{ item.surface or "" }}</td>{% endif %}
       <td class="col-price num">{{ item.price | format_eur }}</td>
       <td class="col-qty num">{{ item.quantity | format_qty }}</td>
       <td class="col-total num">{{ (item.price * item.quantity) | format_eur }}</td>

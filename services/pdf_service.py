@@ -100,6 +100,20 @@ def generate_invoice_pdf(session: InvoiceSession) -> bytes:
         else:
             seller_tax_id_formatted = tax_id
 
+    # Optional columns existence check
+    def has_val(item, attr):
+        if isinstance(item, dict):
+            val = item.get(attr)
+        else:
+            val = getattr(item, attr, None)
+        return bool(val and str(val).strip())
+
+    has_customer_article_id = any(has_val(item, "customer_article_id") for item in session.items)
+    has_drawing_ref = any(has_val(item, "drawing_ref") for item in session.items)
+    has_article_id = any(has_val(item, "article_id") for item in session.items)
+    has_material = any(has_val(item, "material") for item in session.items)
+    has_surface = any(has_val(item, "surface") for item in session.items)
+
     # Load layout template
     template_file = f"{layout_name}_invoice.html"
     template = env.get_template(template_file)
@@ -122,6 +136,11 @@ def generate_invoice_pdf(session: InvoiceSession) -> bytes:
         "tax_total": tax_total,
         "grand_total": grand_total,
         "seller_tax_id_formatted": seller_tax_id_formatted,
+        "has_customer_article_id": has_customer_article_id,
+        "has_drawing_ref": has_drawing_ref,
+        "has_article_id": has_article_id,
+        "has_material": has_material,
+        "has_surface": has_surface,
     }
 
     html_content = template.render(context)

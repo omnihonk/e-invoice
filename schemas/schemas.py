@@ -32,6 +32,8 @@ class BuyerCreate(BaseModel):
     leitweg_id: Optional[str] = None
     reference: Optional[str] = None
     street: Optional[str] = None
+    order_freetext: Optional[str] = None
+
 
 
 class SellerCreate(BaseModel):

@@ -35,6 +35,8 @@ def update_buyer(session_id: str, buyer: BuyerCreate, db_session: DBSession = De
         raise HTTPException(status_code=404, detail="Session not found")
     
     session.buyer = buyer
+    session.order_freetext = buyer.order_freetext
+
     
     # Auto-generation logic for unique consecutive invoice number
     auto_gen = True
@@ -69,25 +71,17 @@ def generate_invoice(session_id: str, db_session: DBSession = Depends(get_db_ses
     session = get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    
-    from services.service import generate_invoice_xml
-    xml_bytes = generate_invoice_xml(session)
-    pdf_bytes = generate_facturx_invoice(session)
-    
+        
     from models.invoice_order import InvoiceOrder
     
-    order_number = None
+    # 1. Determine or generate the unique consecutive order number first
     statement = select(InvoiceOrder).where(InvoiceOrder.session_id == session_id)
     existing_order = db_session.exec(statement).first()
     
     if existing_order:
         order_number = existing_order.order_number
-        existing_order.invoice_number = session.invoice_number
-        existing_order.session_data_json = session.model_dump_json()
-        existing_order.pdf_binary = pdf_bytes
-        existing_order.xml_binary = xml_bytes
-        db_session.add(existing_order)
-        db_session.commit()
+        session.order_number = order_number
+        save_session(session)
     else:
         year = session.issue_date.year
         seq_val = get_next_order_number(year=year, db_session=db_session)
@@ -101,7 +95,21 @@ def generate_invoice(session_id: str, db_session: DBSession = Depends(get_db_ses
                 
         session.order_number = order_number
         save_session(session)
-        
+
+    # 2. Generate XML and PDF (now containing the computed order_number!)
+    from services.service import generate_invoice_xml
+    xml_bytes = generate_invoice_xml(session)
+    pdf_bytes = generate_facturx_invoice(session)
+    
+    # 3. Save or update the persistent ledger record
+    if existing_order:
+        existing_order.invoice_number = session.invoice_number
+        existing_order.session_data_json = session.model_dump_json()
+        existing_order.pdf_binary = pdf_bytes
+        existing_order.xml_binary = xml_bytes
+        db_session.add(existing_order)
+        db_session.commit()
+    else:
         new_order = InvoiceOrder(
             order_number=order_number,
             invoice_number=session.invoice_number,
