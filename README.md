@@ -56,61 +56,30 @@ Acceptable:  1  Rejected:  0
 
 ---
 
-## Project Structure
-
-```text
-e-invoice/
-├── constants.py            # Global application constants
-├── database/               # Relational database infrastructure
-│   ├── db.py               # Engine configuration, sessions, and dynamic migration hooks
-│   └── __init__.py
-├── main.py                 # FastAPI application startup & middleware setup
-├── models/                 # Relational SQLModel schemas
-│   ├── invoice_order.py    # Order metadata, number sequence, and binary storage models
-│   ├── party.py            # Legal parties (Buyer/Seller) data models
-│   └── __init__.py
-├── pyproject.toml          # Build configuration and dependencies (pytest, SQLModel, drafthorse)
-├── requirements.txt        # Pinned lock-file of dependencies
-├── routers/                # FastAPI controller endpoints
-│   ├── order.py            # Historical retrieval, binary downloads (PDF/XML)
-│   ├── session.py          # Session draft creation, validation, and generation
-│   └── __init__.py
-├── schemas/                # Pydantic input/output validation models
-│   ├── session.py          # InvoiceSession schemas & JSON serialization models
-│   └── __init__.py
-├── services/               # Core business logic & formatting helper modules
-│   ├── service.py          # Orchestrates PDF render -> XML embed -> Binary build pipeline
-│   └── __init__.py
-├── templates/              # Jinja2 HTML templates for PDF rendering
-│   └── layouts/
-│       └── base_invoice.html
-└── tests/                  # Highly isolated automated test suite
-    ├── conftest.py         # DB overrides and Redis mocks
-    ├── test_order_api.py   # Suite for persistent order and numbering APIs
-    └── __init__.py
-```
-
----
-
 ## Installation & Setup
 
-Choose either **Docker Deployment** (recommended, as it automatically bundles Redis and all system library dependencies) or a **Local Setup**.
+Choose either **Docker Deployment** (recommended, as it automatically bundles the Mustang Validator, Redis and all system library dependencies) or a **Local Setup**.
 
 ### Option A: Docker Deployment (Recommended)
 
 This project includes a ready-to-use Docker configuration with `docker-compose`. This manages caching (Redis), all WeasyPrint system-level libraries, and maps persistent database volumes out-of-the-box.
 
 1. **Build and start all services**:
+
    ```sh
    docker compose up --build -d
    ```
+
 2. **Access the application**:
    The backend API will be running at `http://localhost:8000`.
 3. **Check container status**:
+
    ```sh
    docker compose ps
    ```
+
 4. **Monitor logs**:
+
    ```sh
    docker compose logs -f
    ```
@@ -157,6 +126,42 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
+## Project Structure
+
+```text
+e-invoice/
+├── constants.py            # Global application constants
+├── database/               # Relational database infrastructure
+│   ├── db.py               # Engine configuration, sessions, and dynamic migration hooks
+│   └── __init__.py
+├── main.py                 # FastAPI application startup & middleware setup
+├── models/                 # Relational SQLModel schemas
+│   ├── invoice_order.py    # Order metadata, number sequence, and binary storage models
+│   ├── party.py            # Legal parties (Buyer/Seller) data models
+│   └── __init__.py
+├── pyproject.toml          # Build configuration and dependencies (pytest, SQLModel, drafthorse)
+├── requirements.txt        # Pinned lock-file of dependencies
+├── routers/                # FastAPI controller endpoints
+│   ├── order.py            # Historical retrieval, binary downloads (PDF/XML)
+│   ├── session.py          # Session draft creation, validation, and generation
+│   └── __init__.py
+├── schemas/                # Pydantic input/output validation models
+│   ├── session.py          # InvoiceSession schemas & JSON serialization models
+│   └── __init__.py
+├── services/               # Core business logic & formatting helper modules
+│   ├── service.py          # Orchestrates PDF render -> XML embed -> Binary build pipeline
+│   └── __init__.py
+├── templates/              # Jinja2 HTML templates for PDF rendering
+│   └── layouts/
+│       └── base_invoice.html
+└── tests/                  # Highly isolated automated test suite
+    ├── conftest.py         # DB overrides and Redis mocks
+    ├── test_order_api.py   # Suite for persistent order and numbering APIs
+    └── __init__.py
+```
+
+---
+
 ## API Reference
 
 The API documentation is available at `/docs`.
@@ -186,11 +191,12 @@ Inspect finalized orders and retrieve generated regulatory binaries from SQLite:
 
 The Docker service integrates a CLI tool to validate the generated invoices against ZUGFeRD 1, 2 or XRechnung Standards. The Tool is provided by [The Mustang Project](https://www.mustangproject.org/)
 
-### How it works:
+### How it works
 
 - **Automatic Provisioning**: On application startup or validation request, the service automatically downloads the official Mustang-CLI jar from Maven Central if not already present locally.
 - **Docker-Bundled**: In Docker environments, the Java Runtime (JRE 21) and the `Mustang-CLI.jar` are pre-packaged during the image build process for zero-dependency execution.
 - **Validation Report**: Running a validation returns a structured JSON containing validation results:
+
   ```json
   {
     "is_valid": true,
