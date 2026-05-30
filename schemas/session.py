@@ -39,4 +39,6 @@ class InvoiceSession(BaseModel):
     invoice_number: Optional[str] = None
     auto_invoice_number: bool = True
     issue_date: date = Field(default_factory=date.today)
-    layout_name: str = "fks"
+    layout_name: str = "buyer"
+    order_number: Optional[str] = None
+    order_freetext: Optional[str] = None

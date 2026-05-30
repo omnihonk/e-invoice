@@ -29,8 +29,8 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-# Discover tests both at the project root (test_main.py) and in the tests/ package
-testpaths = [".", "tests"]
+# Discover tests in the tests/ package
+testpaths = ["tests"]
 # Make the project root importable so all modules resolve without sys.path hacks
 pythonpath = ["."]
 # Show short tracebacks and extra summary info for failures/errors

@@ -5,24 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 import weasyprint
 
 from schemas.session import InvoiceSession
-from services.service import format_vat_id
-
-def format_eur(value) -> str:
-    """Format a numeric value or Decimal as German EUR currency string, e.g. 1.234,56 €"""
-    try:
-        val = Decimal(str(value)).quantize(Decimal("0.01"))
-    except (ValueError, TypeError, KeyError):
-        val = Decimal("0.00")
-    formatted = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{formatted}&nbsp;€"
-
-def format_qty(value) -> str:
-    """Format quantity to strip trailing zero decimals elegantly, e.g. 5.0 -> 5"""
-    try:
-        val = Decimal(str(value))
-        return f"{val:g}"
-    except (ValueError, TypeError, KeyError):
-        return str(value)
+from services.helpers import format_vat_id, format_eur, format_qty
 
 # Configure Jinja Environment
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
@@ -34,7 +17,7 @@ def generate_invoice_pdf(session: InvoiceSession) -> bytes:
     """Generate a branded PDF using Jinja2 templates and WeasyPrint."""
     seller = session.seller
     buyer = session.buyer
-    layout_name = session.layout_name or "fks"
+    layout_name = session.layout_name or "buyer"
 
     # Logo HTML pre-computing
     logo_html = ""

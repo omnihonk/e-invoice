@@ -101,7 +101,7 @@ class SellerTradePartyBase(SQLModel):
         default=None, description="Base64-kodiertes Firmenlogo (PNG/JPEG)"
     )
     bank_name: Optional[str] = Field(
-        default=None, max_length=255, description="Bankname, z.B. VR-Bank Fläming e.G."
+        default=None, max_length=255, description="Bankname"
     )
     iban: Optional[str] = Field(
         default=None, max_length=50, description="IBAN des Geschäftskontos"
@@ -110,19 +110,19 @@ class SellerTradePartyBase(SQLModel):
         default=None, max_length=20, description="BIC/SWIFT-Code der Bank"
     )
     hrb: Optional[str] = Field(
-        default=None, max_length=100, description="Handelsregisternummer, z.B. HRB 28603 P, Amtsgericht Potsdam"
+        default=None, max_length=100, description="Handelsregisternummer"
     )
     tax_number: Optional[str] = Field(
         default=None, max_length=50, description="Steuernummer (nicht USt-ID)"
     )
     signatory: Optional[str] = Field(
-        default=None, max_length=100, description="Name des Unterzeichners, z.B. K. Heimburger"
+        default=None, max_length=100, description="Name des Unterzeichners"
     )
     signatory_title: Optional[str] = Field(
-        default=None, max_length=100, description="Titel des Unterzeichners, z.B. Geschäftsführer"
+        default=None, max_length=100, description="Titel des Unterzeichners"
     )
     payment_terms: Optional[str] = Field(
-        default=None, max_length=255, description="Zahlungsbedingungen, z.B. 14 Tage nach Rechnungsstellung"
+        default=None, max_length=255, description="Zahlungsbedingungen"
     )
     is_default: Optional[bool] = Field(
         default=False, description="Ob dieser Lieferant als Standard geladen werden soll"

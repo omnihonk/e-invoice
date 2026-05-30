@@ -1,149 +1,167 @@
-# ⚡ Smart ZUGFeRD E-Invoice Backend Service
+# E-Invoice Backend
 
-This backend is a high-performance, modular, and containerized **FastAPI** service for generating, validating, and managing certified European **EN 16931 / ZUGFeRD / Factur-X compliant hybrid electronic invoices**. It unifies database persistence, Jinja2 template rendering, WeasyPrint PDF layout generation, and strict Schematron validation.
-
----
-
-## 🏗️ System Architecture & Components
-
-The application is structured into clearly separated architectural components unified inside a high-speed, scalable multi-container environment:
-
-```
-                  ┌──────────────────────────────────────────────┐
-                  │                 Vite Frontend                │
-                  └──────────────────────┬───────────────────────┘
-                                         │ REST API
-                                         ▼
-   ┌─────────────────────────────── Docker network ───────────────────────────────┐
-   │                                                                              │
-   │   ┌────────────────────────── FastAPI Service ──────────────────────────┐    │
-   │   │                                                                     │    │
-   │   │  ┌──────────────────┐    ┌──────────────────┐    ┌───────────────┐  │    │
-   │   │  │  API Validations │    │ Jinja2 Templates │    │  PDF Service  │  │    │
-   │   │  │  (schemas/)      │    │ (fks_invoice)    │    │  (WeasyPrint) │  │    │
-   │   │  └────────┬─────────┘    └────────┬─────────┘    └───────┬───────┘  │    │
-   │   │           │                       │                      │          │    │
-   │   │           ▼                       ▼                      ▼          │    │
-   │   │  ┌──────────────────────────────────────────────────────────────┐  │    │
-   │   │  │                    services/service.py                       │  │    │
-   │   │  └──────────────────────────────┬───────────────────────────────┘  │    │
-   │   │                                 │ Shell Exec                       │    │
-   │   │                                 ▼                                  │    │
-   │   │  ┌──────────────────────────────────────────────────────────────┐  │    │
-   │   │  │                     Mustangproject CLI                       │  │    │
-   │   │  │  OpenJDK 21 JRE ──► Mustang-CLI-2.23.0.jar (Validation)      │  │    │
-   │   │  └──────────────────────────────┬───────────────────────────────┘  │    │
-   │   └─────────────────────────────────┼───────────────────────────────────┘    │
-   │                                     │                                        │
-   │                                     ▼                                        │
-   │   ┌─────────────────────────────────────────────────────────────────────┐    │
-   │   │                           Redis Container                           │    │
-   │   │   Fast, flaccid, transient session drafts (InvoiceSession JSON)     │    │
-   │   └─────────────────────────────────────────────────────────────────────┘    │
-   └──────────────────────────────────────────────────────────────────────────────┘
-                                         │ SQLite volume mount
-                                         ▼
-                      ┌──────────────────────────────────────┐
-                      │             Host Machine             │
-                      │  Persistent SQLite: data/e_invoice.db│
-                      └──────────────────────────────────────┘
-```
-
-### 1. The Core Services
-* **PDF Service (`pdf_service.py`)**: Responsible for compiling the structural invoice skeletons via HTML template inheritance (`base_invoice.html` and `fks_invoice.html`), dynamically applying layout styles, logo base64 embeddings, currency filters, and compiling directly to PDF using **WeasyPrint**.
-* **DraftHorse & Factur-X Engine (`service.py`)**: Utilizes standard CII namespaces to construct compliant XML documents from invoice sessions and embeds this machine-readable XML structure directly into the generated PDF metadata.
-* **Mustang Validation Service (`validation_service.py`)**: Coordinates the automatic verification of generated invoices against official Schematron / XSD standard rules using the packaged `Mustang-CLI` validator.
+Web service built with **FastAPI**, **SQLModel**, and **Redis** for generating, managing, and persisting legally compliant electronic invoices under the  **ZUGFeRD / Factur-X** standard.
 
 ---
 
-## 💾 Relational SQLite vs. Transient Redis Sessions
+## Features
 
-To keep the application highly performant and maintain clean boundaries, we enforce a strict separation of concerns:
-
-### 📁 Database Models (`models/` via SQLModel)
-* **What**: Represents **persistent Master Data** (Stammdaten) stored on disk inside an SQLite database (`data/e_invoice.db`).
-* **Why**: It is designed to act as a reusable registry (Address Book) for business entities—allowing you to store multiple clients (`BuyerTradeParty`), supplier identities (`SellerTradeParty`), and product lists (`Product`) for recurring use.
-* **Volume Persistence**: In Docker Compose, the host `./data` directory is mounted at `/app/data` inside the container. This ensures your master data and SQL schemas remain **100% persistent** across container redeployments and restarts.
-
-### ⚡ Session Schemas (`schemas/` via Pydantic)
-* **What**: Represents **transient Transaction Data** (flüchtige Session-Entwürfe) compiled dynamically when drafting a new invoice.
-* **Why**: When a user begins creating an invoice, they create a draft (`InvoiceSession`). Since this session is temporary, we serialize it to JSON and store it in **Redis** with a TTL cache. Once the invoice is validated and downloaded, the session is cleared. 
-* **Benefits**: Decouples relational SQLite tables from high-frequency temporary operations, avoiding database bloat and migration requirements.
+- **ZUGFeRD 2.2 / Factur-X Compliant**: Generates hybrid PDF invoices containing embedded structured XML invoices (Basic/EN 16931 profile).
+- **Dual Caching & Persistence Layers**:
+  - **Redis Cache**: Holds transient, hot drafts during session editing.
+  - **SQLite Database**: Serves as a persistent relational store for historical orders, invoice records, and finalized binary payloads.
+- **Modular Architecture**: Decoupled, service-oriented design splitting routing, database persistence, ZUGFeRD assembly, and PDF rendering.
+- **Robust REST API**: Rich endpoints supporting full session draft state management and retroactive downloads of signed PDFs and XML schemas.
 
 ---
 
-## ☕ OpenJDK 21 & Mustang-CLI Validation
+## Project Structure
 
-E-invoices are business-critical documents that require official validation. 
-
-* **The Engine**: We use [Mustangproject](https://github.com/ZUGFeRD/mustangproject)—a Java e-invoicing library designed specifically to read, write, and validate ZUGFeRD / Factur-X formats.
-* **Runtime**: The validation service executes `Mustang-CLI-2.23.0.jar` by invoking standard shell processes (`java -jar`). The Docker container comes pre-bundled with **OpenJDK JRE 21** to handle these execution flows seamlessly and offline.
-* **Parser**: The `validation_service.py` runs validation compliance checks, extracts detailed statistics (such as standard rules evaluated, failed assertions, and durations), and parses both XML compliance and PDF/A layout compliance structures, making this metadata available directly to the frontend.
-
----
-
-## 🐳 Docker Services & Compose Architecture
-
-The application is orchestrated via **Docker Compose** across a virtual bridge network:
-* **`web` service**: Build layer on `python:3.12-slim` containing WeasyPrint dependencies, OpenJDK JRE 21, the cached Mustang JAR, FastAPI code, and host volume mappings (`./data` mapped to `/app/data`).
-* **`redis` service**: A lightweight Alpine Redis companion used for rapid API session token storage.
-
----
-
-## 🚀 Step-by-Step Deployment Guide
-
-Ensure you have **Docker** and **Docker Compose** installed (or Podman equivalent with compose support).
-
-### 1. Build and Launch Containers
-To build the backend image and spin up the services in detached mode:
-```bash
-docker compose up --build -d
-```
-
-### 2. Verify Container Health
-Check that both the web server and the Redis database are running and mapping ports:
-```bash
-docker compose ps
-```
-The backend will be available at `http://localhost:8000`.
-
-### 3. Run Automated Tests Inside the Container
-Verify that all 141 tests (PDF rendering, XML well-formedness, database schemas, and Mustang validation) pass inside the active JRE container environment:
-```bash
-docker compose exec web pytest -v
-```
-
-### 4. Stop Services
-To shut down the containers while preserving your persistent database directory:
-```bash
-docker compose down
+```text
+e-invoice/
+├── constants.py            # Global application constants
+├── database/               # Relational database infrastructure
+│   ├── db.py               # Engine configuration, sessions, and dynamic migration hooks
+│   └── __init__.py
+├── main.py                 # FastAPI application startup & middleware setup
+├── models/                 # Relational SQLModel schemas
+│   ├── invoice_order.py    # Order metadata, number sequence, and binary storage models
+│   ├── party.py            # Legal parties (Buyer/Seller) data models
+│   └── __init__.py
+├── pyproject.toml          # Build configuration and dependencies (pytest, SQLModel, drafthorse)
+├── requirements.txt        # Pinned lock-file of dependencies
+├── routers/                # FastAPI controller endpoints
+│   ├── order.py            # Historical retrieval, binary downloads (PDF/XML)
+│   ├── session.py          # Session draft creation, validation, and generation
+│   └── __init__.py
+├── schemas/                # Pydantic input/output validation models
+│   ├── session.py          # InvoiceSession schemas & JSON serialization models
+│   └── __init__.py
+├── services/               # Core business logic & formatting helper modules
+│   ├── service.py          # Orchestrates PDF render -> XML embed -> Binary build pipeline
+│   └── __init__.py
+├── templates/              # Jinja2 HTML templates for PDF rendering
+│   └── layouts/
+│       └── base_invoice.html
+└── tests/                  # Highly isolated automated test suite
+    ├── conftest.py         # DB overrides and Redis mocks
+    ├── test_order_api.py   # Suite for persistent order and numbering APIs
+    └── __init__.py
 ```
 
 ---
 
-## 📡 REST API Specifications
+## Installation & Setup
 
-The FastAPI server exposes clear endpoints for persistent registries, session drafting, and ZUGFeRD generation:
+Choose either **Docker Deployment** (recommended, as it automatically bundles Redis and all system library dependencies) or a **Local Setup**.
 
-### 🧾 Invoice Session Workflow (`/session`)
+### Option A: Docker Deployment (Recommended)
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| **POST** | `/session/start` | Creates a new transient invoice drafting session. Returns `session_id` (UUID). |
-| **POST** | `/session/{session_id}/seller` | Saves the Seller (Lieferant) profile details to the session cache. |
-| **POST** | `/session/{session_id}/buyer` | Saves the Buyer (Kunde) profile details and transaction parameters to the session. |
-| **POST** | `/session/{session_id}/items` | Registers the spreadsheet invoice line items (quantities, prices, FKS fields) into the session. |
-| **POST** | `/session/{session_id}/generate` | Generates the hybrid e-invoice PDF/A containing the embedded CII XML and returns it as a direct download. |
-| **POST** | `/session/{session_id}/validate` | Triggers the in-container Mustang Schematron validation, returning rule execution stats and error lists. |
+This project includes a ready-to-use Docker configuration with `docker-compose`. This manages caching (Redis), all WeasyPrint system-level libraries, and maps persistent database volumes out-of-the-box.
 
-### 🗃️ Registry Masters (`/sellers`, `/buyers`, `/products`)
+1. **Build and start all services**:
+   ```sh
+   docker compose up --build -d
+   ```
+2. **Access the application**:
+   The backend API will be running at `http://localhost:8000`.
+3. **Check container status**:
+   ```sh
+   docker compose ps
+   ```
+4. **Monitor logs**:
+   ```sh
+   docker compose logs -f
+   ```
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| **POST** | `/sellers/` | Adds a new persistent Seller profile to the SQLite database. |
-| **GET** | `/all_sellers` | Retrieves all registered Seller profiles from the database. |
-| **GET** | `/sellers/{party_id}` | Retrieves details for a specific registered Seller. |
-| **POST** | `/buyers/` | Adds a new persistent Buyer profile to the SQLite database. |
-| **GET** | `/all_buyers` | Retrieves all registered Buyer profiles from the database. |
-| **POST** | `/products/` | Adds a new persistent Product entry to the catalog. |
-| **GET** | `/all_products` | Retrieves all persistent catalog products. |
+### Option B: Local Setup
+
+#### Prerequisites
+
+- **Python**: Version `3.11` or higher.
+- **Redis**: A running instance on `localhost:6379` (for session draft caching).
+- **System dependencies**: `weasyprint` requires `pango` and `cairo` to render HTML templates to PDF. Make sure they are installed on your OS (e.g., `sudo apt install shared-mime-info libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0` on Ubuntu/Debian).
+
+#### 1. Set up the Python virtual environment
+
+Using **uv** (highly recommended for performance):
+```sh
+uv venv
+source .venv/bin/activate
+uv sync
+```
+
+Alternatively, using standard **pip**:
+```sh
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### 2. Spin up the application
+
+Start the hot-reloading development server:
+```sh
+fastapi dev main.py
+```
+Or use **uvicorn** directly:
+```sh
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+
+---
+
+## API Reference
+
+The API documentation is available at `/docs`.
+
+### Session Drafts (`/sessions`)
+Manage and compile transient invoice drafts cached in Redis:
+- `POST /sessions` - Initialize a new invoice session draft.
+- `GET /sessions/{session_id}` - Retrieve the current draft state.
+- `PUT /sessions/{session_id}` - Update the buyer, seller, line items, and taxes.
+- `POST /sessions/{session_id}/generate` - Finalize the draft. This compiles the ZUGFeRD standard XML, renders the Weasyprint PDF, registers the consecutive order number, commits all assets to the persistent database, and returns the hybrid PDF binary.
+- `POST /sessions/{session_id}/validate` - Validate the generated Factur-X PDF draft using the built-in **Mustang Validator CLI**. Returns a structured JSON validation report detailing European standards compliance.
+
+### Historical Orders (`/orders`)
+Inspect finalized orders and retrieve generated regulatory binaries from SQLite:
+- `GET /orders` - Fetch a paginated list of all generated orders and metadata.
+- `GET /orders/{order_number}` - Retrieve full metadata details for a specific order.
+- `GET /orders/{order_number}/pdf` - Download the finalized, ZUGFeRD-compliant hybrid PDF document.
+- `GET /orders/{order_number}/xml` - Download the raw embedded ZUGFeRD invoice XML.
+
+---
+
+## ZUGFeRD/Factur-X Validation (Mustang-CLI)
+
+The Docker service integrates a CLI tool to validate the generated invoices against ZUGFeRD 1, 2 or XRechnung Standards. The Tool is provided by [The Mustang Project](https://www.mustangproject.org/)
+
+### How it works:
+- **Automatic Provisioning**: On application startup or validation request, the service automatically downloads the official Mustang-CLI jar from Maven Central if not already present locally.
+- **Docker-Bundled**: In Docker environments, the Java Runtime (JRE 21) and the `Mustang-CLI.jar` are pre-packaged during the image build process for zero-dependency execution.
+- **Validation Report**: Running a validation returns a structured JSON containing validation results:
+  ```json
+  {
+    "is_valid": true,
+    "status": "valid",
+    "info": {
+      "rules": {
+        "fired": 142,
+        "failed": 0
+      }
+    },
+    "errors": []
+  }
+  ```
+
+---
+
+## Testing
+
+The test suite runs with fully isolated, in-memory SQLite instances to guarantee that development database states are not contaminated.
+
+Execute all automated tests via **pytest**:
+```sh
+pytest
+```

@@ -9,6 +9,7 @@ from routers import session as session_router
 from routers import seller as seller_router
 from routers import buyer as buyer_router
 from routers import product as product_router
+from routers import order as order_router
 
 
 def parse_e_invoice_xml():
@@ -21,12 +22,20 @@ def parse_e_invoice_xml():
     print(doc)
 
 
+allowed_origins = [
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:4173",  # Vite preview server
+]
+env_origins = os.getenv("ALLOWED_ORIGINS")
+if env_origins:
+    allowed_origins.extend([origin.strip() for origin in env_origins.split(",") if origin.strip()])
+
 app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,8 +48,9 @@ app.include_router(session_router.router)
 app.include_router(seller_router.router)
 app.include_router(buyer_router.router)
 app.include_router(product_router.router)
+app.include_router(order_router.router)
 
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"API": "e-invoice", "docs": "To get started, go to /docs"}
