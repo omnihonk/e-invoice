@@ -15,6 +15,47 @@ Web service built with **FastAPI**, **SQLModel**, and **Redis** for generating, 
 
 ---
 
+## KOSIT Validation
+
+The Koordinierungsstelle für IT-Standards (KoSIT) offers a [validator](https://github.com/itplr-kosit/validator). Here is a test with [X-Rechnung Config](https://github.com/itplr-kosit/validator-configuration-xrechnung)
+
+```text
+KoSIT Validator version 1.6.0
+Loading scenarios from  file:///home/rh/kosit-validator/scenarios.xml
+Using repository  file:///home/rh/kosit-validator/
+
+Loaded "Validator Configuration XRechnung 3.0.2" by Coordination Office for IT Standards (KoSIT) from 2026-02-04 
+The following scenarios are available:
+  * EN16931 XRechnung (UBL Invoice)
+  * EN16931 XRechnung Extension (UBL Invoice)
+  * EN16931 XRechnung CVD (UBL Invoice)
+  * EN16931 XRechnung (UBL CreditNote)
+  * EN16931 XRechnung CVD (UBL CreditNote)
+  * EN16931 XRechnung (CII)
+  * EN16931 XRechnung Extension (CII)
+  * EN16931 XRechnung CVD (CII)
+  * EN16931 (UBL Invoice)
+  * EN16931 (UBL CreditNote)
+  * EN16931 (CII)
+
+
+Processing of 1 objects started
+Processing of 1 objects completed in 188ms
+Results:
+---------------------------------------------------------------------------------------------------------
+|File                                                 |Schema |Schematron|Acceptance|Error/Description   |
+|/home/rh/kosit-validator/invoice_2ddd1007.xml        |   Y   |    Y     |ACCEPTABLE|                    |
+---------------------------------------------------------------------------------------------------------
+Acceptable:  1  Rejected:  0
+
+
+##############################
+#   Validation successful!   #
+##############################
+```
+
+---
+
 ## Project Structure
 
 ```text
@@ -85,6 +126,7 @@ This project includes a ready-to-use Docker configuration with `docker-compose`.
 #### 1. Set up the Python virtual environment
 
 Using **uv** (highly recommended for performance):
+
 ```sh
 uv venv
 source .venv/bin/activate
@@ -92,6 +134,7 @@ uv sync
 ```
 
 Alternatively, using standard **pip**:
+
 ```sh
 python -m venv .venv
 source .venv/bin/activate
@@ -101,14 +144,16 @@ pip install -r requirements.txt
 #### 2. Spin up the application
 
 Start the hot-reloading development server:
+
 ```sh
 fastapi dev main.py
 ```
+
 Or use **uvicorn** directly:
+
 ```sh
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
 
 ---
 
@@ -117,7 +162,9 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 The API documentation is available at `/docs`.
 
 ### Session Drafts (`/sessions`)
+
 Manage and compile transient invoice drafts cached in Redis:
+
 - `POST /sessions` - Initialize a new invoice session draft.
 - `GET /sessions/{session_id}` - Retrieve the current draft state.
 - `PUT /sessions/{session_id}` - Update the buyer, seller, line items, and taxes.
@@ -125,7 +172,9 @@ Manage and compile transient invoice drafts cached in Redis:
 - `POST /sessions/{session_id}/validate` - Validate the generated Factur-X PDF draft using the built-in **Mustang Validator CLI**. Returns a structured JSON validation report detailing European standards compliance.
 
 ### Historical Orders (`/orders`)
+
 Inspect finalized orders and retrieve generated regulatory binaries from SQLite:
+
 - `GET /orders` - Fetch a paginated list of all generated orders and metadata.
 - `GET /orders/{order_number}` - Retrieve full metadata details for a specific order.
 - `GET /orders/{order_number}/pdf` - Download the finalized, ZUGFeRD-compliant hybrid PDF document.
@@ -138,6 +187,7 @@ Inspect finalized orders and retrieve generated regulatory binaries from SQLite:
 The Docker service integrates a CLI tool to validate the generated invoices against ZUGFeRD 1, 2 or XRechnung Standards. The Tool is provided by [The Mustang Project](https://www.mustangproject.org/)
 
 ### How it works:
+
 - **Automatic Provisioning**: On application startup or validation request, the service automatically downloads the official Mustang-CLI jar from Maven Central if not already present locally.
 - **Docker-Bundled**: In Docker environments, the Java Runtime (JRE 21) and the `Mustang-CLI.jar` are pre-packaged during the image build process for zero-dependency execution.
 - **Validation Report**: Running a validation returns a structured JSON containing validation results:
@@ -162,6 +212,7 @@ The Docker service integrates a CLI tool to validate the generated invoices agai
 The test suite runs with fully isolated, in-memory SQLite instances to guarantee that development database states are not contaminated.
 
 Execute all automated tests via **pytest**:
+
 ```sh
 pytest
 ```
