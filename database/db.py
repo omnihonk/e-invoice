@@ -90,11 +90,32 @@ def create_db_and_tables():
             pass
 
         try:
+            conn.execute(text("ALTER TABLE seller_trade_parties ADD COLUMN delivery_terms VARCHAR"))
+            conn.commit()
+            print("Successfully added delivery_terms column to seller_trade_parties")
+        except Exception:
+            pass
+
+        try:
             conn.execute(text("ALTER TABLE order_number_sequences ADD COLUMN year INTEGER"))
             conn.commit()
             print("Successfully added year column to order_number_sequences")
         except Exception:
             # Column already exists, ignore
+            pass
+
+        try:
+            conn.execute(text("ALTER TABLE invoice_orders ADD COLUMN buyer_name VARCHAR"))
+            conn.commit()
+            print("Successfully added buyer_name column to invoice_orders")
+        except Exception:
+            pass
+
+        try:
+            conn.execute(text("ALTER TABLE invoice_orders ADD COLUMN buyer_id VARCHAR"))
+            conn.commit()
+            print("Successfully added buyer_id column to invoice_orders")
+        except Exception:
             pass
 
 

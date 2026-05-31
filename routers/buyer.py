@@ -9,11 +9,35 @@ from typing import List
 
 router = APIRouter(tags=["buyers"])
 
+def get_next_buyer_number(session: Session) -> str:
+    """Get the next consecutive 6-digit Kundennummer starting with '490'."""
+    statement = select(BuyerTradeParty).where(BuyerTradeParty.global_id.like("490%"))
+    results = session.exec(statement).all()
+    
+    max_val = 11  # Default fallback starting after SAXAS (490011)
+    for r in results:
+        g_id = r.global_id
+        if g_id and len(g_id) == 6 and g_id.startswith("490"):
+            try:
+                val = int(g_id[3:])
+                if val > max_val:
+                    max_val = val
+            except ValueError:
+                pass
+                
+    next_val = max_val + 1
+    return f"490{next_val:03d}"
+
 @router.post("/buyers/", response_model=BuyerTradeParty)
 def create_buyer(
     *, session: Session = Depends(get_session), trade_party: BuyerTradePartyCreate
 ):
     db_trade_party = BuyerTradeParty.model_validate(trade_party)
+    
+    # Auto-assign consecutive Kundennummer starting with 490 if not provided
+    if not db_trade_party.global_id or not db_trade_party.global_id.strip():
+        db_trade_party.global_id = get_next_buyer_number(session)
+        
     session.add(db_trade_party)
     session.commit()
     session.refresh(db_trade_party)

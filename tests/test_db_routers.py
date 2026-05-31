@@ -107,6 +107,98 @@ class TestDBRouters:
 
         app.dependency_overrides.clear()
 
+    def test_buyer_auto_assigned_global_id(self, db_session):
+        def get_session_override():
+            return db_session
+
+        app.dependency_overrides[get_session] = get_session_override
+        client = TestClient(app)
+
+        # 1. Create first buyer without global_id -> should get 490012 (consecutive starting after 490011)
+        response1 = client.post(
+            "/buyers/",
+            json={
+                "name": "First Auto Buyer",
+                "post_code": "12345",
+                "city_name": "München",
+                "line_one": "Buyerstr 2",
+                "country_id": "DE",
+                "tax_scheme_id": "VA",
+                "tax_id": "DE987654321",
+            },
+        )
+        assert response1.status_code == 200
+        assert response1.json()["global_id"] == "490012"
+
+        # 2. Create second buyer without global_id -> should get 490013
+        response2 = client.post(
+            "/buyers/",
+            json={
+                "name": "Second Auto Buyer",
+                "post_code": "12345",
+                "city_name": "München",
+                "line_one": "Buyerstr 3",
+                "country_id": "DE",
+                "tax_scheme_id": "VA",
+                "tax_id": "DE987654322",
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()["global_id"] == "490013"
+
+        # 2b. Create buyer with empty string global_id -> should get 490014
+        response_empty = client.post(
+            "/buyers/",
+            json={
+                "name": "Empty ID Buyer",
+                "post_code": "12345",
+                "city_name": "München",
+                "line_one": "Buyerstr empty",
+                "country_id": "DE",
+                "tax_scheme_id": "VA",
+                "tax_id": "DE987654326",
+                "global_id": ""
+            },
+        )
+        assert response_empty.status_code == 200
+        assert response_empty.json()["global_id"] == "490014"
+
+        # 2c. Create buyer with whitespace global_id -> should get 490015
+        response_space = client.post(
+            "/buyers/",
+            json={
+                "name": "Space ID Buyer",
+                "post_code": "12345",
+                "city_name": "München",
+                "line_one": "Buyerstr space",
+                "country_id": "DE",
+                "tax_scheme_id": "VA",
+                "tax_id": "DE987654327",
+                "global_id": "   "
+            },
+        )
+        assert response_space.status_code == 200
+        assert response_space.json()["global_id"] == "490015"
+
+        # 3. Create a third buyer WITH a custom global_id -> should be preserved
+        response3 = client.post(
+            "/buyers/",
+            json={
+                "name": "Third Manual Buyer",
+                "post_code": "12345",
+                "city_name": "München",
+                "line_one": "Buyerstr 4",
+                "country_id": "DE",
+                "tax_scheme_id": "VA",
+                "tax_id": "DE987654323",
+                "global_id": "CUSTOM-99"
+            },
+        )
+        assert response3.status_code == 200
+        assert response3.json()["global_id"] == "CUSTOM-99"
+
+        app.dependency_overrides.clear()
+
     def test_product_crud_endpoints(self, db_session):
         def get_session_override():
             return db_session

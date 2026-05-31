@@ -7,6 +7,8 @@ class OrderListItem(BaseModel):
     invoice_number: Optional[str] = None
     session_id: str
     created_at: datetime
+    buyer_name: Optional[str] = None
+    buyer_id: Optional[str] = None
 
 class OrderDetails(BaseModel):
     order_number: str
@@ -14,3 +16,5 @@ class OrderDetails(BaseModel):
     session_id: str
     created_at: datetime
     session_data: Dict[str, Any]
+    buyer_name: Optional[str] = None
+    buyer_id: Optional[str] = None

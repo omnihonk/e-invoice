@@ -7,6 +7,11 @@ manipulation is needed here.
 """
 
 from datetime import date
+import os
+from dotenv import load_dotenv
+
+# Load local secrets from .env if present
+load_dotenv()
 
 import pytest
 from fastapi.testclient import TestClient
@@ -81,23 +86,23 @@ def minimal_seller() -> SellerCreate:
 def full_seller() -> SellerCreate:
     """Fully-populated seller matching a real JMP-style invoice."""
     return SellerCreate(
-        name="JMP Fertigungstechnik GmbH",
-        post_code="14776",
-        city_name="Brandenburg an der Havel",
+        name=os.getenv("SELLER_NAME", "Mock Seller GmbH"),
+        post_code=os.getenv("SELLER_POST_CODE", "12345"),
+        city_name=os.getenv("SELLER_CITY_NAME", "Musterstadt"),
         country_id="DE",
-        line_one="Industriestrasse 42",
-        tax_id="DE987654321",
+        line_one=os.getenv("SELLER_LINE_ONE", "Musterstrasse 123"),
+        tax_id=os.getenv("SELLER_TAX_ID", "DE123456789"),
         tax_scheme_id="VA",
-        phone_number="+49 3381 123456",
-        fax_number="+49 3381 123457",
-        email_address="billing@jmp-example.de",
-        bank_name="VR-Bank Fläming e.G.",
-        iban="DE97160620082104401500",
-        bic="GENODEF1LUK",
-        hrb="HRB 28603 P, Amtsgericht Potsdam",
-        tax_number="050/111/02842",
-        signatory="K. Heimburger",
-        signatory_title="Geschäftsführer",
+        phone_number=os.getenv("SELLER_PHONE_NUMBER", "+49 123 456789"),
+        fax_number=os.getenv("SELLER_FAX_NUMBER", "+49 123 456780"),
+        email_address=os.getenv("SELLER_EMAIL_ADDRESS", "billing@example.de"),
+        bank_name=os.getenv("SELLER_BANK_NAME", "Musterbank e.G."),
+        iban=os.getenv("SELLER_IBAN", "DE89370400440532013000"),
+        bic=os.getenv("SELLER_BIC", "TESTDEF1MUB"),
+        hrb=os.getenv("SELLER_HRB", "HRB 12345, Amtsgericht Musterstadt"),
+        tax_number=os.getenv("SELLER_TAX_NUMBER", "123/456/78900"),
+        signatory=os.getenv("SELLER_SIGNATORY", "Max Mustermann"),
+        signatory_title=os.getenv("SELLER_SIGNATORY_TITLE", "Geschäftsführer"),
         payment_terms="14 Tage nach Rechnungsstellung",
     )
 

@@ -305,6 +305,21 @@ class TestBuyerFields:
         )
         assert "DE555666777" in tax_reg
 
+    def test_buyer_id_mapping(self):
+        buyer = BuyerCreate(
+            name="ID Mapped Buyer",
+            post_code="12345",
+            city_name="Hamburg",
+            country_id="DE",
+            global_id="490012",
+        )
+        tree = _parse(_make_session(buyer=buyer))
+        buyer_id = _text(
+            tree,
+            ".//ram:BuyerTradeParty/ram:ID",
+        )
+        assert buyer_id == "490012"
+
     def test_no_buyer_does_not_produce_buyer_element(self):
         """If buyer is None, the BuyerTradeParty element should be absent or empty."""
         session = InvoiceSession(
@@ -588,3 +603,68 @@ class TestPaymentTerms:
             ".//ram:SpecifiedTradePaymentTerms/ram:DueDateDateTime/udt:DateTimeString",
         )
         assert due  # must be present (e.g. "20240401")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Line item custom fields
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestLineItemCustomFields:
+
+    def test_line_item_assigned_ids(self):
+        items = [
+            LineItem(
+                name="Custom Widget",
+                quantity=1.0,
+                price=10.0,
+                article_id="JMP-XYZ",
+                customer_article_id="K-ABC",
+            )
+        ]
+        tree = _parse(_make_session(items=items))
+        
+        # Check SellerAssignedID
+        seller_id = _text(
+            tree,
+            ".//ram:IncludedSupplyChainTradeLineItem/ram:SpecifiedTradeProduct/ram:SellerAssignedID"
+        )
+        assert seller_id == "JMP-XYZ"
+        
+        # Check BuyerAssignedID
+        buyer_id = _text(
+            tree,
+            ".//ram:IncludedSupplyChainTradeLineItem/ram:SpecifiedTradeProduct/ram:BuyerAssignedID"
+        )
+        assert buyer_id == "K-ABC"
+
+    def test_line_item_product_characteristics(self):
+        items = [
+            LineItem(
+                name="Custom Widget",
+                quantity=1.0,
+                price=10.0,
+                drawing_ref="DWG-1234",
+                material="1.4301",
+                surface="blank",
+            )
+        ]
+        tree = _parse(_make_session(items=items))
+        
+        # Extract all applicable product characteristics
+        characteristics = tree.xpath(
+            ".//ram:IncludedSupplyChainTradeLineItem/ram:SpecifiedTradeProduct/ram:ApplicableProductCharacteristic",
+            namespaces=NS
+        )
+        assert len(characteristics) == 3
+        
+        # Map them by description for verification
+        char_map = {}
+        for char in characteristics:
+            desc = _text(char, "./ram:Description")
+            val = _text(char, "./ram:Value")
+            char_map[desc] = val
+            
+        assert char_map.get("Zeichnung") == "DWG-1234"
+        assert char_map.get("Material") == "1.4301"
+        assert char_map.get("Oberfläche") == "blank"
+

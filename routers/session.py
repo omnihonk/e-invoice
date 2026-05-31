@@ -107,6 +107,8 @@ def generate_invoice(session_id: str, db_session: DBSession = Depends(get_db_ses
         existing_order.session_data_json = session.model_dump_json()
         existing_order.pdf_binary = pdf_bytes
         existing_order.xml_binary = xml_bytes
+        existing_order.buyer_name = session.buyer.name if session.buyer else None
+        existing_order.buyer_id = session.buyer.global_id or session.buyer.party_id if session.buyer else None
         db_session.add(existing_order)
         db_session.commit()
     else:
@@ -116,7 +118,9 @@ def generate_invoice(session_id: str, db_session: DBSession = Depends(get_db_ses
             session_id=session_id,
             session_data_json=session.model_dump_json(),
             pdf_binary=pdf_bytes,
-            xml_binary=xml_bytes
+            xml_binary=xml_bytes,
+            buyer_name=session.buyer.name if session.buyer else None,
+            buyer_id=session.buyer.global_id or session.buyer.party_id if session.buyer else None
         )
         db_session.add(new_order)
         db_session.commit()

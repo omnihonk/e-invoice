@@ -93,6 +93,11 @@ def _setup_buyer(doc: Document, session: InvoiceSession):
     buyer = doc.trade.agreement.buyer
     buyer.name = session.buyer.name
     
+    # Set buyer customer number (assigned by seller) as ram:ID (BR-CO-09 / BT-46)
+    buyer_id = getattr(session.buyer, "global_id", None) or getattr(session.buyer, "party_id", None)
+    if buyer_id:
+        buyer.id = buyer_id
+    
     postcode = getattr(session.buyer, "post_code", None) or getattr(session.buyer, "postcode", None)
     if postcode:
         buyer.address.postcode = postcode
@@ -174,6 +179,30 @@ def _setup_items_and_totals(doc: Document, session: InvoiceSession):
         
         li.agreement.net.amount = d2(item_price)
         li.delivery.billed_quantity = (item_quantity, item.unit_code)
+        
+        # Map custom line item fields to ZUGFeRD / Factur-X standard
+        if getattr(item, "article_id", None):
+            li.product.seller_assigned_id = item.article_id
+        if getattr(item, "customer_article_id", None):
+            li.product.buyer_assigned_id = item.customer_article_id
+            
+        if getattr(item, "drawing_ref", None):
+            char = li.product.characteristics.child_type()
+            char.description = "Zeichnung"
+            char.value = item.drawing_ref
+            li.product.characteristics.add(char)
+            
+        if getattr(item, "material", None):
+            char = li.product.characteristics.child_type()
+            char.description = "Material"
+            char.value = item.material
+            li.product.characteristics.add(char)
+            
+        if getattr(item, "surface", None):
+            char = li.product.characteristics.child_type()
+            char.description = "Oberfläche"
+            char.value = item.surface
+            li.product.characteristics.add(char)
         
         li.settlement.trade_tax.type_code = "VAT"
         li.settlement.trade_tax.category_code = "S"

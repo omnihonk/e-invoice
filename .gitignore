@@ -262,5 +262,11 @@ coverage/
 .DS_Store
 Thumbs.db
 
-
+# Notes
+NOTES.md
 AI_Geschwafel.md
+
+# Private
+seed_buyers.py
+seed_articles.py
+seed_seller.py

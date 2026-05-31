@@ -56,7 +56,7 @@ class TestGenerateInvoicePdf:
 
     def test_pdf_with_signatory(self, full_session):
         """Signatory name + title must not break PDF rendering."""
-        assert full_session.seller.signatory == "K. Heimburger"
+        assert full_session.seller.signatory is not None
         result = generate_invoice_pdf(full_session)
         assert _is_valid_pdf(result)
 
@@ -117,6 +117,57 @@ class TestGenerateInvoicePdf:
         ]
         result = generate_invoice_pdf(minimal_session)
         assert _is_valid_pdf(result)
+
+    def test_pdf_dynamic_columns_html_elements(self, minimal_session):
+        """Verify HTML template rendering hides empty optional columns and displays populated ones."""
+        from lxml import html
+        from schemas.session import LineItem
+        from services.pdf_service import env
+        
+        minimal_session.items = [
+            LineItem(name="Item A", quantity=1.0, price=10.0, material="Steel"),
+            LineItem(name="Item B", quantity=2.0, price=20.0, drawing_ref="DWG-999")
+        ]
+        
+        template = env.get_template("buyer_invoice.html")
+        context = {
+            "session": minimal_session,
+            "seller": minimal_session.seller,
+            "buyer": minimal_session.buyer,
+            "logo_html": "",
+            "header_full": "Seller",
+            "seller_post_city": "Berlin",
+            "buyer_addr_html": "Munich",
+            "invoice_num": "RE-001",
+            "issue_date_str": "31.05.2026",
+            "issue_city": "Berlin",
+            "payment_terms": "14 days",
+            "delivery_date_str": "31.05.2026",
+            "line_total": 50.0,
+            "tax_total": 9.5,
+            "grand_total": 59.5,
+            "seller_tax_id_formatted": "DE123456",
+            "has_customer_article_id": False,
+            "has_drawing_ref": True,
+            "has_article_id": False,
+            "has_material": True,
+            "has_surface": False,
+        }
+        rendered = template.render(context)
+        tree = html.fromstring(rendered)
+        
+        headers = tree.xpath("//thead/tr/th/@class")
+        assert "col-pos" in headers
+        assert "col-drawing" in headers
+        assert "col-name" in headers
+        assert "col-material" in headers
+        assert "col-price num" in headers
+        assert "col-qty num" in headers
+        assert "col-total num" in headers
+        
+        assert "col-cust-art" not in headers
+        assert "col-art-id" not in headers
+        assert "col-surface" not in headers
 
 
 # ══════════════════════════════════════════════════════════════════════════════

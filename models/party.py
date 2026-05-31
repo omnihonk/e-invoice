@@ -124,6 +124,9 @@ class SellerTradePartyBase(SQLModel):
     payment_terms: Optional[str] = Field(
         default=None, max_length=255, description="Zahlungsbedingungen"
     )
+    delivery_terms: Optional[str] = Field(
+        default=None, max_length=255, description="Lieferbedingungen"
+    )
     is_default: Optional[bool] = Field(
         default=False, description="Ob dieser Lieferant als Standard geladen werden soll"
     )

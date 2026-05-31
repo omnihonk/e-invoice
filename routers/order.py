@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Response, Depends
 from sqlmodel import Session as DBSession, select
 
@@ -10,16 +10,28 @@ from schemas.order import OrderListItem, OrderDetails
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 @router.get("", response_model=List[OrderListItem])
-def list_orders(db_session: DBSession = Depends(get_db_session)):
-    """List all invoice generation orders (metadata only)."""
-    statement = select(InvoiceOrder).order_by(InvoiceOrder.created_at.desc())
+def list_orders(
+    buyer_name: Optional[str] = None,
+    buyer_id: Optional[str] = None,
+    db_session: DBSession = Depends(get_db_session)
+):
+    """List all invoice generation orders (metadata only) with optional buyer filtering."""
+    statement = select(InvoiceOrder)
+    if buyer_name:
+        statement = statement.where(InvoiceOrder.buyer_name.contains(buyer_name))
+    if buyer_id:
+        statement = statement.where(InvoiceOrder.buyer_id == buyer_id)
+        
+    statement = statement.order_by(InvoiceOrder.created_at.desc())
     results = db_session.exec(statement).all()
     return [
         OrderListItem(
             order_number=o.order_number,
             invoice_number=o.invoice_number,
             session_id=o.session_id,
-            created_at=o.created_at
+            created_at=o.created_at,
+            buyer_name=o.buyer_name,
+            buyer_id=o.buyer_id
         ) for o in results
     ]
 
@@ -41,7 +53,9 @@ def get_order_details(order_number: str, db_session: DBSession = Depends(get_db_
         invoice_number=order.invoice_number,
         session_id=order.session_id,
         created_at=order.created_at,
-        session_data=session_data
+        session_data=session_data,
+        buyer_name=order.buyer_name,
+        buyer_id=order.buyer_id
     )
 
 @router.get("/{order_number}/pdf")
