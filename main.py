@@ -26,6 +26,13 @@ allowed_origins = [
     "http://localhost:5173",  # Vite dev server
     "http://localhost:4173",  # Vite preview server
 ]
+frontend_port = os.getenv("FRONTEND_PORT")
+if frontend_port:
+    allowed_origins.append(f"http://localhost:{frontend_port}")
+frontend_preview_port = os.getenv("FRONTEND_PREVIEW_PORT")
+if frontend_preview_port:
+    allowed_origins.append(f"http://localhost:{frontend_preview_port}")
+
 env_origins = os.getenv("ALLOWED_ORIGINS")
 if env_origins:
     allowed_origins.extend([origin.strip() for origin in env_origins.split(",") if origin.strip()])
@@ -54,3 +61,16 @@ app.include_router(order_router.router)
 @app.get("/")
 def read_root():
     return {"API": "e-invoice", "docs": "To get started, go to /docs"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    # Use PORT or BACKEND_PORT with fallback to 8000
+    port_str = os.getenv("PORT") or os.getenv("BACKEND_PORT") or "8000"
+    try:
+        port = int(port_str)
+    except ValueError:
+        port = 8000
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run("main:app", host=host, port=port, reload=True)
+

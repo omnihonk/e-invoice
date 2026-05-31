@@ -126,42 +126,6 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## Project Structure
-
-```text
-e-invoice/
-├── constants.py            # Global application constants
-├── database/               # Relational database infrastructure
-│   ├── db.py               # Engine configuration, sessions, and dynamic migration hooks
-│   └── __init__.py
-├── main.py                 # FastAPI application startup & middleware setup
-├── models/                 # Relational SQLModel schemas
-│   ├── invoice_order.py    # Order metadata, number sequence, and binary storage models
-│   ├── party.py            # Legal parties (Buyer/Seller) data models
-│   └── __init__.py
-├── pyproject.toml          # Build configuration and dependencies (pytest, SQLModel, drafthorse)
-├── requirements.txt        # Pinned lock-file of dependencies
-├── routers/                # FastAPI controller endpoints
-│   ├── order.py            # Historical retrieval, binary downloads (PDF/XML)
-│   ├── session.py          # Session draft creation, validation, and generation
-│   └── __init__.py
-├── schemas/                # Pydantic input/output validation models
-│   ├── session.py          # InvoiceSession schemas & JSON serialization models
-│   └── __init__.py
-├── services/               # Core business logic & formatting helper modules
-│   ├── service.py          # Orchestrates PDF render -> XML embed -> Binary build pipeline
-│   └── __init__.py
-├── templates/              # Jinja2 HTML templates for PDF rendering
-│   └── layouts/
-│       └── base_invoice.html
-└── tests/                  # Highly isolated automated test suite
-    ├── conftest.py         # DB overrides and Redis mocks
-    ├── test_order_api.py   # Suite for persistent order and numbering APIs
-    └── __init__.py
-```
-
----
-
 ## API Reference
 
 The API documentation is available at `/docs`.
