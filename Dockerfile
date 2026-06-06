@@ -50,5 +50,5 @@ COPY . /app/
 RUN mkdir -p /app/data
 
 # Run the FastAPI server
-EXPOSE 8000
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+EXPOSE 8765
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8765}"]
